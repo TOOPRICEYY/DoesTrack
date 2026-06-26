@@ -1,0 +1,13 @@
+.DS_Store
+DerivedData/
+.build/
+build/
+Archives/
+Export/
+*.xcuserstate
+xcuserdata/
+*.moved-aside
+*.xcarchive
+*.ipa
+*.dSYM.zip
+*.dSYM

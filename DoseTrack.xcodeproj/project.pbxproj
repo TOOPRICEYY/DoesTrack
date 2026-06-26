@@ -1,0 +1,416 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		02EBA407131A708AA90F6D36 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = D84B68595A8AEEB0E71FC881 /* Components.swift */; };
+		23929E1E92E1A8F1654B5C72 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6219A4160944CA8FC78AE012 /* InsightsView.swift */; };
+		3D1849A02840691FA46654D0 /* DoseTrackApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E8F696E39126C1C2F248C52 /* DoseTrackApp.swift */; };
+		4084E0EB2F1D4935DC248057 /* MedicationEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 412E43366DE007B04FC0E8A1 /* MedicationEditorView.swift */; };
+		60EDD139E037882412A2DF62 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 432D44727D06905B3BD6A360 /* TodayView.swift */; };
+		6CBDFEF5F038D75D9A358FB1 /* GitHubSyncClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40C2BB00797488C47C441CC2 /* GitHubSyncClient.swift */; };
+		7D642823FCEEE617ED1385A3 /* KeychainTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44253171E74E54D1A9C82C7A /* KeychainTokenStore.swift */; };
+		7F7D709CA27C553A1353065E /* DoseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84561367CB7EA66A626CE4CC /* DoseModels.swift */; };
+		81FB7687797B34816A18D3FD /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFA3D671FBA09F78CAF744E2 /* NotificationScheduler.swift */; };
+		8F134A1F655CE4F04D7339FD /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B23C3A4621E8AF06BF6591F /* HistoryView.swift */; };
+		A59FB515D63F489946AEABC4 /* SyncView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F5E4C0CCA7219A34BFE1E5 /* SyncView.swift */; };
+		A5E3B3B5FB3F32FD0B483B0E /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDEA86B1060F28ECA16A5EE /* RootView.swift */; };
+		AECF934389CB424603203700 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5ED6A6449432F890DFDB71F9 /* Assets.xcassets */; };
+		B58A9189A0D5713FBDE2A7F7 /* ScheduleEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 982DE9536BA3EC9023B37B06 /* ScheduleEditorView.swift */; };
+		B6E7763BAF4BD2DF54F5BF57 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3450EA28567DD833B3E15045 /* PrivacyInfo.xcprivacy */; };
+		B9857F8A729F4F82F46D804F /* Date+DoseTrack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79AE1AFB478D44110D30FF32 /* Date+DoseTrack.swift */; };
+		DDD3624090373FD415B4570A /* MedicationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2302C9D4D18E20B6C7883CD9 /* MedicationListView.swift */; };
+		F0590D335358A2D2428D8BFB /* DoseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B086AF19BCA05528051CA84 /* DoseStore.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0B23C3A4621E8AF06BF6591F /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		2302C9D4D18E20B6C7883CD9 /* MedicationListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationListView.swift; sourceTree = "<group>"; };
+		3450EA28567DD833B3E15045 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		40C2BB00797488C47C441CC2 /* GitHubSyncClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubSyncClient.swift; sourceTree = "<group>"; };
+		412E43366DE007B04FC0E8A1 /* MedicationEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationEditorView.swift; sourceTree = "<group>"; };
+		432D44727D06905B3BD6A360 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		44253171E74E54D1A9C82C7A /* KeychainTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTokenStore.swift; sourceTree = "<group>"; };
+		5B086AF19BCA05528051CA84 /* DoseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoseStore.swift; sourceTree = "<group>"; };
+		5ED6A6449432F890DFDB71F9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		6219A4160944CA8FC78AE012 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
+		79AE1AFB478D44110D30FF32 /* Date+DoseTrack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+DoseTrack.swift"; sourceTree = "<group>"; };
+		84561367CB7EA66A626CE4CC /* DoseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoseModels.swift; sourceTree = "<group>"; };
+		982DE9536BA3EC9023B37B06 /* ScheduleEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleEditorView.swift; sourceTree = "<group>"; };
+		9E8F696E39126C1C2F248C52 /* DoseTrackApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoseTrackApp.swift; sourceTree = "<group>"; };
+		9FDEA86B1060F28ECA16A5EE /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		A25AE842E80510A5C5FC0387 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		C984C953B3380BEBE5D370EA /* DoseTrack.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = DoseTrack.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D4F5E4C0CCA7219A34BFE1E5 /* SyncView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncView.swift; sourceTree = "<group>"; };
+		D84B68595A8AEEB0E71FC881 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		DFA3D671FBA09F78CAF744E2 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		07322AB8A706A7F5B01DE6F6 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				84561367CB7EA66A626CE4CC /* DoseModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		46894BC8E5CCAB2BAC6D834D /* DoseTrack */ = {
+			isa = PBXGroup;
+			children = (
+				9E8F696E39126C1C2F248C52 /* DoseTrackApp.swift */,
+				E561908A18E32B9871BA811A /* Extensions */,
+				07322AB8A706A7F5B01DE6F6 /* Models */,
+				8E8FADDA792EEF309027CA2F /* Services */,
+				D583C815BD2C7EE46A815B22 /* Supporting */,
+				6823DF62CD72AABE20CA8CEC /* Views */,
+			);
+			path = DoseTrack;
+			sourceTree = "<group>";
+		};
+		6823DF62CD72AABE20CA8CEC /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				D84B68595A8AEEB0E71FC881 /* Components.swift */,
+				0B23C3A4621E8AF06BF6591F /* HistoryView.swift */,
+				6219A4160944CA8FC78AE012 /* InsightsView.swift */,
+				412E43366DE007B04FC0E8A1 /* MedicationEditorView.swift */,
+				2302C9D4D18E20B6C7883CD9 /* MedicationListView.swift */,
+				9FDEA86B1060F28ECA16A5EE /* RootView.swift */,
+				982DE9536BA3EC9023B37B06 /* ScheduleEditorView.swift */,
+				D4F5E4C0CCA7219A34BFE1E5 /* SyncView.swift */,
+				432D44727D06905B3BD6A360 /* TodayView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		8E8FADDA792EEF309027CA2F /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				5B086AF19BCA05528051CA84 /* DoseStore.swift */,
+				40C2BB00797488C47C441CC2 /* GitHubSyncClient.swift */,
+				44253171E74E54D1A9C82C7A /* KeychainTokenStore.swift */,
+				DFA3D671FBA09F78CAF744E2 /* NotificationScheduler.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		B4C74E21B63C636282DBF037 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C984C953B3380BEBE5D370EA /* DoseTrack.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D583C815BD2C7EE46A815B22 /* Supporting */ = {
+			isa = PBXGroup;
+			children = (
+				5ED6A6449432F890DFDB71F9 /* Assets.xcassets */,
+				A25AE842E80510A5C5FC0387 /* Info.plist */,
+				3450EA28567DD833B3E15045 /* PrivacyInfo.xcprivacy */,
+			);
+			path = Supporting;
+			sourceTree = "<group>";
+		};
+		E561908A18E32B9871BA811A /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				79AE1AFB478D44110D30FF32 /* Date+DoseTrack.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		EB0C40386B630159CC5A9CC1 = {
+			isa = PBXGroup;
+			children = (
+				46894BC8E5CCAB2BAC6D834D /* DoseTrack */,
+				B4C74E21B63C636282DBF037 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		301788A43C79587C8847500D /* DoseTrack */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 00C1243C4D39362B4D30D90F /* Build configuration list for PBXNativeTarget "DoseTrack" */;
+			buildPhases = (
+				E0C579F13CF90BA39CE097EF /* Sources */,
+				FDBEC95A4DCCD07DA5E96067 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = DoseTrack;
+			packageProductDependencies = (
+			);
+			productName = DoseTrack;
+			productReference = C984C953B3380BEBE5D370EA /* DoseTrack.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		6315B9B4813F5F27900F9403 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					301788A43C79587C8847500D = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 0F254ED5CF861D5EAD8C4C90 /* Build configuration list for PBXProject "DoseTrack" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = EB0C40386B630159CC5A9CC1;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = B4C74E21B63C636282DBF037 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				301788A43C79587C8847500D /* DoseTrack */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		FDBEC95A4DCCD07DA5E96067 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AECF934389CB424603203700 /* Assets.xcassets in Resources */,
+				B6E7763BAF4BD2DF54F5BF57 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E0C579F13CF90BA39CE097EF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				02EBA407131A708AA90F6D36 /* Components.swift in Sources */,
+				B9857F8A729F4F82F46D804F /* Date+DoseTrack.swift in Sources */,
+				7F7D709CA27C553A1353065E /* DoseModels.swift in Sources */,
+				F0590D335358A2D2428D8BFB /* DoseStore.swift in Sources */,
+				3D1849A02840691FA46654D0 /* DoseTrackApp.swift in Sources */,
+				6CBDFEF5F038D75D9A358FB1 /* GitHubSyncClient.swift in Sources */,
+				8F134A1F655CE4F04D7339FD /* HistoryView.swift in Sources */,
+				23929E1E92E1A8F1654B5C72 /* InsightsView.swift in Sources */,
+				7D642823FCEEE617ED1385A3 /* KeychainTokenStore.swift in Sources */,
+				4084E0EB2F1D4935DC248057 /* MedicationEditorView.swift in Sources */,
+				DDD3624090373FD415B4570A /* MedicationListView.swift in Sources */,
+				81FB7687797B34816A18D3FD /* NotificationScheduler.swift in Sources */,
+				A5E3B3B5FB3F32FD0B483B0E /* RootView.swift in Sources */,
+				B58A9189A0D5713FBDE2A7F7 /* ScheduleEditorView.swift in Sources */,
+				A59FB515D63F489946AEABC4 /* SyncView.swift in Sources */,
+				60EDD139E037882412A2DF62 /* TodayView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		415407B5EEACA7120C3D7F9F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Debug;
+		};
+		58C5BEDD21DCF983D50477EB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Automatic;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				INFOPLIST_FILE = DoseTrack/Supporting/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.gp.dosetrack;
+				PRODUCT_NAME = DoseTrack;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		68DADAEAD1B06B0E68256A7A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		94C077ADB0E254417ACFDF23 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				INFOPLIST_FILE = DoseTrack/Supporting/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.gp.dosetrack;
+				PRODUCT_NAME = DoseTrack;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		00C1243C4D39362B4D30D90F /* Build configuration list for PBXNativeTarget "DoseTrack" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				94C077ADB0E254417ACFDF23 /* Debug */,
+				58C5BEDD21DCF983D50477EB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		0F254ED5CF861D5EAD8C4C90 /* Build configuration list for PBXProject "DoseTrack" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				415407B5EEACA7120C3D7F9F /* Debug */,
+				68DADAEAD1B06B0E68256A7A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 6315B9B4813F5F27900F9403 /* Project object */;
+}
