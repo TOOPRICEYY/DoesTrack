@@ -157,8 +157,9 @@ final class DoseStore: ObservableObject {
     func upsertProtocol(named stackName: String, medications draftMedications: [Medication], replacing oldStackName: String? = nil) {
         if let oldStackName {
             let oldIDs = medications.filter { $0.stackName == oldStackName }.map(\.id)
+            let newIDs = Set(draftMedications.map(\.id))
             medications.removeAll { oldIDs.contains($0.id) }
-            logs.removeAll { oldIDs.contains($0.medicationID) && draftMedications.allSatisfy { $0.id != $0.id } }
+            logs.removeAll { oldIDs.contains($0.medicationID) && !newIDs.contains($0.medicationID) }
         }
 
         let normalized = draftMedications.map { medication in

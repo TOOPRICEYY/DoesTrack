@@ -1,12 +1,17 @@
 # DoseTrack
 
-DoseTrack is a SwiftUI iOS medication tracker built for local-first use with optional GitHub repository sync.
+DoseTrack is a SwiftUI iOS protocol and medication tracker built for local-first use with optional GitHub repository sync. The current UI is modeled from the screenshots in `model_app_screenshots`.
 
 ## Features
 
-- Medication catalog with dosage, instructions, notes, color, active state, and inventory thresholds.
+- Home, Tracker, Pulse, and Profile tabs matching the model app structure.
+- Optimization stack/protocol management with active/inactive states.
+- Four-step protocol editor for naming, medication selection, dose/schedule preferences, inventory toggles, and review.
+- Medication catalog with dosage, instructions, notes, color, active state, protocol grouping, and inventory thresholds.
 - Repeating schedules by time and weekday.
-- Today view with due, taken, skipped, and missed dose states.
+- Calendar and upcoming shots views.
+- Notifications center with Today, Upcoming, and Reminders tabs.
+- Customizable home card library.
 - Manual dose logging and dated history review.
 - Adherence insights, seven-day chart, streaks, and refill warnings.
 - Local notification scheduling for active medication schedules.
@@ -14,7 +19,7 @@ DoseTrack is a SwiftUI iOS medication tracker built for local-first use with opt
 
 ## GitHub Sync
 
-Create a fine-grained GitHub personal access token with repository contents read/write access for the target repo. In the app, open the Sync tab and enter:
+Create a fine-grained GitHub personal access token with repository contents read/write access for the target repo. In the app, open Profile > App Settings > Data Management and enter:
 
 - Repository owner
 - Repository name
@@ -38,6 +43,8 @@ Build for a physical iOS target or generic device:
 xcodebuild -project DoseTrack.xcodeproj -scheme DoseTrack -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
 ```
 
+The app icon asset catalog is present under `DoseTrack/Supporting/Assets.xcassets`, but it is excluded in `project.yml` for local sandbox builds because this environment's CoreSimulator asset compiler is unavailable. Re-enable the asset catalog and `ASSETCATALOG_COMPILER_APPICON_NAME` before a distribution archive.
+
 ## TestFlight Deployment
 
 The project is configured for App Store Connect distribution with:
@@ -46,7 +53,7 @@ The project is configured for App Store Connect distribution with:
 - Bundle identifier `com.gp.dosetrack`.
 - Marketing version `1.0` and build number `1` from `project.yml`.
 - Automatic signing style with Release builds using an Apple Distribution identity.
-- A full `AppIcon` asset catalog, including the 1024px marketing icon.
+- A full `AppIcon` asset catalog is present on disk, including the 1024px marketing icon.
 - A privacy manifest with no tracking domains or required-reason API declarations.
 - `ITSAppUsesNonExemptEncryption=false` for standard platform/HTTPS encryption use.
 - `Config/ExportOptions-TestFlight.plist` for App Store Connect upload.
@@ -57,6 +64,7 @@ Before uploading, confirm these publisher-specific values:
 - Increment `CURRENT_PROJECT_VERSION` in `project.yml` for every TestFlight upload after the first accepted build.
 - Confirm the App Store Connect app privacy questionnaire. DoseTrack stores medication data locally and can optionally send a backup JSON file to GitHub when the user configures sync; the GitHub token is stored in Keychain.
 - Confirm export compliance if the app later adds custom encryption beyond Apple's platform crypto, HTTPS, or Keychain usage.
+- Re-enable `DoseTrack/Supporting/Assets.xcassets` in `project.yml` before archiving so the App Store build has its app icon.
 
 Regenerate the project after changing `project.yml`:
 

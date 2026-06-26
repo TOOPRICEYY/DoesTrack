@@ -1,32 +1,50 @@
 import SwiftUI
 
 struct RootView: View {
+    @State private var showsStacks = false
+
     var body: some View {
-        TabView {
-            TodayView()
-                .tabItem {
-                    Label("Today", systemImage: "calendar")
-                }
+        ZStack(alignment: .bottomTrailing) {
+            TabView {
+                ModelHomeView()
+                    .tabItem {
+                        Label("Home", systemImage: "house.fill")
+                    }
 
-            MedicationListView()
-                .tabItem {
-                    Label("Meds", systemImage: "pills.fill")
-                }
+                ModelTrackerView()
+                    .tabItem {
+                        Label("Tracker", systemImage: "chart.bar.fill")
+                    }
 
-            HistoryView()
-                .tabItem {
-                    Label("History", systemImage: "clock.arrow.circlepath")
-                }
+                PulseView()
+                    .tabItem {
+                        Label("Pulse", systemImage: "brain.head.profile")
+                    }
 
-            InsightsView()
-                .tabItem {
-                    Label("Insights", systemImage: "chart.bar.xaxis")
-                }
+                ProfileView()
+                    .tabItem {
+                        Label("Profile", systemImage: "person")
+                    }
+            }
 
-            SyncView()
-                .tabItem {
-                    Label("Sync", systemImage: "arrow.triangle.2.circlepath")
-                }
+            Button {
+                showsStacks = true
+            } label: {
+                Image(systemName: "square.grid.2x2.fill.badge.plus")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(.black)
+                    .frame(width: 76, height: 76)
+                    .background(Color.blue.opacity(0.28), in: Circle())
+                    .overlay {
+                        Circle().stroke(.white.opacity(0.8), lineWidth: 1)
+                    }
+            }
+            .padding(.trailing, 24)
+            .padding(.bottom, 64)
+            .accessibilityLabel("Open optimization stacks")
+        }
+        .sheet(isPresented: $showsStacks) {
+            ProtocolStacksView()
         }
     }
 }
