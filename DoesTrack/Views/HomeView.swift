@@ -12,6 +12,7 @@ struct ModelHomeView: View {
     @State private var selectedTemplate: ProtocolTemplate?
     @State private var loggingDose: ScheduledDose?
     @State private var pauseMedication: Medication?
+    @State private var showsUnscheduledLog = false
     @State private var activeCardSheet: HomeCardSheet?
 
     enum HomeCardSheet: String, Identifiable {
@@ -79,6 +80,10 @@ struct ModelHomeView: View {
             }
             .sheet(item: $pauseMedication) { medication in
                 PauseMedicationSheet(medication: medication)
+                    .environmentObject(store)
+            }
+            .sheet(isPresented: $showsUnscheduledLog) {
+                LogDoseSheet(unscheduledOn: selectedDate)
                     .environmentObject(store)
             }
             .sheet(item: $activeCardSheet) { sheet in
@@ -209,6 +214,22 @@ struct ModelHomeView: View {
             } else {
                 stackSummarySection
             }
+
+            Button {
+                showsUnscheduledLog = true
+            } label: {
+                Label("Log unscheduled dose", systemImage: "plus.circle")
+                    .font(.headline)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(.white, in: Capsule())
+                    .overlay {
+                        Capsule().stroke(Color.appBlue.opacity(0.4))
+                    }
+            }
+            .frame(maxWidth: .infinity)
+            .foregroundStyle(Color.appBlue)
+            .accessibilityLabel("Log unscheduled dose")
 
             SectionHeader(title: "FOR YOU")
 
