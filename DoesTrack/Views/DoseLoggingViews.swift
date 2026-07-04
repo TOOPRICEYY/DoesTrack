@@ -266,6 +266,9 @@ struct LogDoseSheet: View {
     /// Whether the amount field is the active quantity (mg/IU/…) or the
     /// constituted volume in mL. mL entry needs a batch concentration.
     @State private var entersVolume = false
+    /// Unscheduled dose on an every-N-days schedule: re-anchor the series
+    /// so forthcoming doses keep their interval from this dose.
+    @State private var shiftsFutureDoses = false
 
     private let target: Target
 
@@ -383,6 +386,9 @@ struct LogDoseSheet: View {
                 doseCard
                 if !availableBatches.isEmpty {
                     batchCard
+                }
+                if showsIntervalShiftOption {
+                    intervalShiftCard
                 }
                 methodCard
                 injectionSiteCard
@@ -571,6 +577,35 @@ struct LogDoseSheet: View {
         if entersVolume { return value }
         guard let batchConcentration, batchConcentration > 0 else { return nil }
         return value / batchConcentration
+    }
+
+    private var showsIntervalShiftOption: Bool {
+        guard case .unscheduled = target, let medication else { return false }
+        return store.hasShiftableIntervalSchedule(medicationID: medication.id, on: targetDate)
+    }
+
+    private var shiftableInterval: Int? {
+        medication?.schedules.first { ($0.intervalDays ?? 0) > 1 }?.intervalDays
+    }
+
+    private var intervalShiftCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Toggle(isOn: $shiftsFutureDoses) {
+                Label("Shift future doses", systemImage: "arrow.right.to.line")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .tint(doseLoggingBlue)
+
+            if let interval = shiftableInterval {
+                Text(shiftsFutureDoses
+                     ? "The every-\(interval)-day schedule restarts from this dose; the next one lands \(targetDate.startOfDay.addingDays(interval).formatted(date: .abbreviated, time: .omitted))."
+                     : "Off: upcoming scheduled doses stay on their current days.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .doseLoggingCard()
     }
 
     private var medicationUnitLabel: String {
@@ -840,6 +875,7 @@ struct LogDoseSheet: View {
         method = medication.instructions.localizedCaseInsensitiveContains("IM") ? "IM" : "SubQ"
         selectedBatchID = store.defaultBatch(for: medication.id)?.id
         entersVolume = false
+        shiftsFutureDoses = false
     }
 
     /// Combines the target day with the (possibly edited) log time.
@@ -887,6 +923,9 @@ struct LogDoseSheet: View {
                 batchID: selectedBatchID,
                 volumeMl: resolvedVolumeMl
             )
+            if shiftsFutureDoses {
+                store.shiftIntervalSchedules(for: medication.id, anchoredAt: effectiveLoggedAt)
+            }
         case .editLog(let original):
             guard let amount = resolvedActiveAmount else { return }
             var updated = original

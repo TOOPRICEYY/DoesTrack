@@ -234,6 +234,56 @@ extension DoseStore {
         }
     }
 
+    // MARK: Interval shifting
+
+    /// True when the medication has an every-N-days schedule that is still
+    /// running on the given date, so an unscheduled dose can re-anchor it.
+    func hasShiftableIntervalSchedule(medicationID: UUID, on date: Date) -> Bool {
+        guard let medication = medication(for: medicationID) else { return false }
+        return medication.schedules.contains { schedule in
+            (schedule.intervalDays ?? 0) > 1 &&
+            (schedule.endDate.map { $0 >= date.startOfDay } ?? true)
+        }
+    }
+
+    /// Re-anchors every-N-days schedules so the next dose lands N days after
+    /// the anchor. History is preserved: the running schedule is ended the
+    /// day before the anchor and a copy continues from the anchor day.
+    func shiftIntervalSchedules(for medicationID: UUID, anchoredAt anchor: Date) {
+        guard var medication = medication(for: medicationID) else { return }
+
+        let anchorDay = anchor.startOfDay
+        var changed = false
+
+        medication.schedules = medication.schedules.flatMap { schedule -> [DoseSchedule] in
+            guard (schedule.intervalDays ?? 0) > 1,
+                  schedule.endDate.map({ $0 >= anchorDay }) ?? true
+            else {
+                return [schedule]
+            }
+
+            changed = true
+
+            var shifted = schedule
+            shifted.startDate = anchorDay
+
+            // Series not started yet: just move its start.
+            if schedule.startDate.startOfDay >= anchorDay {
+                return [shifted]
+            }
+
+            var ended = schedule
+            ended.endDate = anchorDay.addingDays(-1)
+
+            shifted.id = UUID()
+            return [ended, shifted]
+        }
+
+        guard changed else { return }
+        medication.updatedAt = Date()
+        updateMedication(medication)
+    }
+
     // MARK: Injection sites
 
     static let defaultInjectionSites = [
