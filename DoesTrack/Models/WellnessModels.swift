@@ -264,6 +264,8 @@ struct MedicationBatch: Identifiable, Codable, Equatable {
     /// Active units (the medication's unit) per mL once constituted.
     var concentrationPerMl: Double?
     var purchaseDate: Date
+    /// Number of bottles/vials in this batch.
+    var bottleCount: Int?
     var totalQuantity: Double
     var remainingQuantity: Double
     var notes: String
@@ -278,6 +280,7 @@ struct MedicationBatch: Identifiable, Codable, Equatable {
         label: String = "",
         concentrationPerMl: Double? = nil,
         purchaseDate: Date = Date(),
+        bottleCount: Int? = nil,
         totalQuantity: Double,
         remainingQuantity: Double? = nil,
         notes: String = "",
@@ -291,6 +294,7 @@ struct MedicationBatch: Identifiable, Codable, Equatable {
         self.label = label
         self.concentrationPerMl = concentrationPerMl
         self.purchaseDate = purchaseDate
+        self.bottleCount = bottleCount
         self.totalQuantity = totalQuantity
         self.remainingQuantity = remainingQuantity ?? totalQuantity
         self.notes = notes

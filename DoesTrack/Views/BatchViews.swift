@@ -95,6 +95,11 @@ private struct BatchRow: View {
                 HStack {
                     Text("\(quantity(batch.remainingQuantity)) / \(quantity(batch.totalQuantity)) \(unit)")
                         .font(.subheadline.weight(.semibold))
+                    if let bottles = batch.bottleCount {
+                        Text("· \(bottles) bottle\(bottles == 1 ? "" : "s")")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                     if let concentration = batch.concentrationPerMl {
                         Text("· \(quantity(concentration)) \(unit)/mL")
                             .font(.subheadline)
@@ -123,6 +128,7 @@ struct BatchEditorView: View {
     @State private var medicationID: UUID?
     @State private var supplier: String
     @State private var label: String
+    @State private var bottleCountText: String
     @State private var concentrationText: String
     @State private var purchaseDate: Date
     @State private var totalText: String
@@ -137,6 +143,7 @@ struct BatchEditorView: View {
         _medicationID = State(initialValue: batch?.medicationID)
         _supplier = State(initialValue: batch?.supplier ?? "")
         _label = State(initialValue: batch?.label ?? "")
+        _bottleCountText = State(initialValue: batch?.bottleCount.map { String($0) } ?? "")
         _concentrationText = State(initialValue: batch?.concentrationPerMl.map { $0.formatted(.number.precision(.fractionLength(0...3)).grouping(.never)) } ?? "")
         _purchaseDate = State(initialValue: batch?.purchaseDate ?? Date())
         _totalText = State(initialValue: batch.map { $0.totalQuantity.formatted(.number.precision(.fractionLength(0...2)).grouping(.never)) } ?? "")
@@ -169,6 +176,15 @@ struct BatchEditorView: View {
                     TextField("Supplier", text: $supplier)
                     TextField("Label / lot (optional)", text: $label)
                     DatePicker("Purchase date", selection: $purchaseDate, displayedComponents: .date)
+                    HStack {
+                        Text("Bottles")
+                        Spacer()
+                        TextField("optional", text: $bottleCountText)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 100)
+                            .accessibilityLabel("Bottle count")
+                    }
                     HStack {
                         Text("Concentration")
                         Spacer()
@@ -252,6 +268,7 @@ struct BatchEditorView: View {
                 label: label.trimmingCharacters(in: .whitespacesAndNewlines),
                 concentrationPerMl: Double(concentrationText),
                 purchaseDate: purchaseDate,
+                bottleCount: Int(bottleCountText),
                 totalQuantity: total,
                 remainingQuantity: remaining,
                 notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
