@@ -150,7 +150,8 @@ enum PKModeler {
         referenceDate: Date = Date(),
         lookbackDays: Int = 28,
         forecastDays: Int = 28,
-        stepHours: Int = 12
+        stepHours: Int = 12,
+        includeFutureDoses: Bool = true
     ) -> [PKMedicationProfile] {
         store.medications
             .filter(\.isActive)
@@ -161,7 +162,8 @@ enum PKModeler {
                     referenceDate: referenceDate,
                     lookbackDays: lookbackDays,
                     forecastDays: forecastDays,
-                    stepHours: stepHours
+                    stepHours: stepHours,
+                    includeFutureDoses: includeFutureDoses
                 )
             }
             .sorted { lhs, rhs in
@@ -181,7 +183,8 @@ enum PKModeler {
         referenceDate: Date = Date(),
         lookbackDays: Int = 28,
         forecastDays: Int = 28,
-        stepHours: Int = 12
+        stepHours: Int = 12,
+        includeFutureDoses: Bool = true
     ) -> PKMedicationProfile? {
         guard let parameters = PKParameterLibrary.parameterSet(for: medication) else {
             return nil
@@ -191,7 +194,10 @@ enum PKModeler {
         let windowEnd = referenceDate.startOfDay.addingDays(forecastDays)
         let washInDays = max(lookbackDays, Int(ceil(parameters.halfLifeDays * 5)))
         let eventStart = referenceDate.startOfDay.addingDays(-washInDays)
-        let events = doseEvents(for: medication, in: store, from: eventStart, through: windowEnd, referenceDate: referenceDate)
+        // With future doses off, the forecast is pure decay of what's on board.
+        let eventEnd = includeFutureDoses ? windowEnd : referenceDate
+        let events = doseEvents(for: medication, in: store, from: eventStart, through: eventEnd, referenceDate: referenceDate)
+            .filter { includeFutureDoses || $0.date <= referenceDate }
 
         guard !events.isEmpty else { return nil }
 

@@ -8,9 +8,13 @@ struct PKModelView: View {
     @EnvironmentObject private var store: DoseStore
     @Environment(\.dismiss) private var dismiss
     @State private var selectedMedicationID: UUID?
+    @State private var includeFutureDoses = true
+    /// Visible chart window in days; pinch or the buttons change it.
+    @State private var visibleDays = 28.0
+    @State private var zoomAnchorDays = 28.0
 
     private var profiles: [PKMedicationProfile] {
-        PKModeler.profiles(in: store)
+        PKModeler.profiles(in: store, includeFutureDoses: includeFutureDoses)
     }
 
     private var unsupportedMedications: [Medication] {
@@ -130,6 +134,10 @@ struct PKModelView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                Toggle("Include future scheduled doses", isOn: $includeFutureDoses)
+                    .font(.subheadline)
+                    .tint(pkBlue)
+
                 Chart {
                     ForEach(profile.points) { point in
                         AreaMark(
@@ -151,12 +159,47 @@ struct PKModelView: View {
                         .foregroundStyle(.secondary.opacity(0.45))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
                 }
-                .chartXScale(domain: profile.windowStart...profile.windowEnd)
                 .chartYAxisLabel(profile.unitLabel)
                 .chartYAxis {
                     AxisMarks(position: .leading)
                 }
+                .chartScrollableAxes(.horizontal)
+                .chartXVisibleDomain(length: max(1, visibleDays) * 86_400)
+                .chartScrollPosition(initialX: Date().addingDays(-Int(visibleDays * 0.6)))
                 .frame(height: 240)
+                .simultaneousGesture(
+                    MagnificationGesture()
+                        .onChanged { scale in
+                            visibleDays = min(56, max(3, zoomAnchorDays / scale))
+                        }
+                        .onEnded { _ in
+                            zoomAnchorDays = visibleDays
+                        }
+                )
+
+                HStack {
+                    Text("Window")
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
+
+                    ForEach([7.0, 14.0, 28.0, 56.0], id: \.self) { days in
+                        Button("\(Int(days))d") {
+                            visibleDays = days
+                            zoomAnchorDays = days
+                        }
+                        .font(.caption.bold())
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(visibleDays == days ? pkBlue : Color(.systemGray6), in: Capsule())
+                        .foregroundStyle(visibleDays == days ? .white : .primary)
+                    }
+
+                    Spacer()
+
+                    Label("Pinch to zoom · scroll", systemImage: "hand.pinch")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     }
