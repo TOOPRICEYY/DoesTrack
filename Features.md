@@ -1,4 +1,4 @@
-- [ ] New feature: Tracker->Medications list, clicking on any given medications should display the time series of all doses taken over time with a graph display option with modes: estimated pks, dose quantity bucketed in different time peroids depending on the time scale of the graph which can be selected to be, daily, weekly, monthly and scrolled horizontally
+- [x] New feature: Tracker->Medications list, clicking on any given medications should display the time series of all doses taken over time with a graph display option with modes: estimated pks, dose quantity bucketed in different time peroids depending on the time scale of the graph which can be selected to be, daily, weekly, monthly and scrolled horizontally
 - [ ] Refinement: Pulse->pk model
 	- [ ] Option for toggling whether future doses should be incorporated in prediction 
 	- [ ] Horizontal scroll and zoom

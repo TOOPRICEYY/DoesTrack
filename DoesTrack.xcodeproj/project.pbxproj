@@ -29,6 +29,7 @@
 		82BC538404CFB31BF5993174 /* DoseLoggingViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB4D685155B61DCE9C9A1C4B /* DoseLoggingViews.swift */; };
 		94B5FC9F546395936D5E8EEF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D8E676A04FBD49F726D5BD16 /* Assets.xcassets */; };
 		9C6328AFB3E8A64DB3DA8269 /* TrackerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AA7EAF18D46B2B43D3CE69C /* TrackerView.swift */; };
+		9F855490ED5CDE1D7EA06089 /* MedicationDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58CA01B5E49514D63FB1EE30 /* MedicationDetailView.swift */; };
 		AC092A6C8536038197223778 /* SharedUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0335AE67168208396E409198 /* SharedUI.swift */; };
 		B225CBE5E7DFBF37DB8742CC /* ProtocolEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 424224BB03962B1EB70361E8 /* ProtocolEditorView.swift */; };
 		B528E8B62F60003F119D094A /* DoseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5E6147D7C5F385628D82A86 /* DoseModels.swift */; };
@@ -64,6 +65,7 @@
 		424224BB03962B1EB70361E8 /* ProtocolEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtocolEditorView.swift; sourceTree = "<group>"; };
 		460769FBEC8B4BD070AB688C /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
 		52F2FA1DBCDCD91B5E641D11 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		58CA01B5E49514D63FB1EE30 /* MedicationDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationDetailView.swift; sourceTree = "<group>"; };
 		5BD76B45558A1BD4C1AE44A3 /* PulseChatViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulseChatViews.swift; sourceTree = "<group>"; };
 		5C9893B5CF4E3DA6FCB3C568 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		5DA405C8FCA20E3F0365A179 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -112,6 +114,7 @@
 				FB4D685155B61DCE9C9A1C4B /* DoseLoggingViews.swift */,
 				7ABE65328E4D0DB924E1B585 /* HomeCards.swift */,
 				5C9893B5CF4E3DA6FCB3C568 /* HomeView.swift */,
+				58CA01B5E49514D63FB1EE30 /* MedicationDetailView.swift */,
 				60BA196B893FAB09A97B3CB4 /* NotificationsView.swift */,
 				E26912DE26FD207B2F9A6973 /* PKModelView.swift */,
 				52F2FA1DBCDCD91B5E641D11 /* ProfileView.swift */,
@@ -307,6 +310,7 @@
 				828CE4AF8A3C31BE89464092 /* HomeCards.swift in Sources */,
 				5DFB5D1C62E870304F0E8F44 /* HomeView.swift in Sources */,
 				F35F1D21165568F2CDCC0578 /* KeychainTokenStore.swift in Sources */,
+				9F855490ED5CDE1D7EA06089 /* MedicationDetailView.swift in Sources */,
 				1844D6AFA3D25D69C5EAE6FC /* NotificationScheduler.swift in Sources */,
 				DE9B80C3A4C4D4B9F9FD97FF /* NotificationsView.swift in Sources */,
 				69209947A1991EB0DE4ABB29 /* PKModelView.swift in Sources */,

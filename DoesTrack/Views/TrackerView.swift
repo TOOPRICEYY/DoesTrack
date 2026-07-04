@@ -4,6 +4,7 @@ struct ModelTrackerView: View {
     @EnvironmentObject private var store: DoseStore
     @State private var showsStacks = false
     @State private var showsExpenses = false
+    @State private var detailMedication: Medication?
 
     var body: some View {
         NavigationStack {
@@ -48,7 +49,13 @@ struct ModelTrackerView: View {
                     }
 
                     ForEach(store.medications.prefix(5)) { medication in
-                        TrackerMedicationRow(medication: medication, loggedCount: store.logs.filter { $0.medicationID == medication.id && $0.status == .taken }.count)
+                        Button {
+                            detailMedication = medication
+                        } label: {
+                            TrackerMedicationRow(medication: medication, loggedCount: store.logs.filter { $0.medicationID == medication.id && $0.status == .taken }.count)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("\(medication.name) details")
                     }
                 }
                 .padding()
@@ -61,6 +68,10 @@ struct ModelTrackerView: View {
             }
             .sheet(isPresented: $showsExpenses) {
                 ExpensesView()
+                    .environmentObject(store)
+            }
+            .sheet(item: $detailMedication) { medication in
+                MedicationDetailView(medication: medication)
                     .environmentObject(store)
             }
         }
