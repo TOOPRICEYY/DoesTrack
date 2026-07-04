@@ -61,6 +61,7 @@ final class DoseStore: ObservableObject {
 
     @Published var storageError: String?
     @Published var notificationAuthorization: UNAuthorizationStatus = .notDetermined
+    @Published var lastAutoSyncError: String?
 
     private let fileURL: URL
     private let calendar = Calendar.doseTrackCalendar

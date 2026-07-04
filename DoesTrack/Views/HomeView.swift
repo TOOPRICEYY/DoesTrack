@@ -37,6 +37,12 @@ struct ModelHomeView: View {
                     header
                     DateStripView(selectedDate: $selectedDate)
 
+                    if store.showsSyncStaleWarning {
+                        SyncStaleBanner {
+                            store.dismissSyncStaleWarning()
+                        }
+                    }
+
                     if stacks.isEmpty {
                         emptyStart
                     } else {
@@ -308,6 +314,41 @@ struct ModelHomeView: View {
         case 5..<12: return "Good Morning"
         case 12..<18: return "Good Afternoon"
         default: return "Good Evening"
+        }
+    }
+}
+
+private struct SyncStaleBanner: View {
+    var onDismiss: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "exclamationmark.arrow.triangle.2.circlepath")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.orange)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Backup out of date")
+                    .font(.headline)
+                Text("GitHub sync hasn't run in over a week. Sync from Profile > App Settings > Data Management, or turn on Auto Sync.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Button(action: onDismiss) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityLabel("Dismiss sync warning")
+        }
+        .padding()
+        .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(.orange.opacity(0.4))
         }
     }
 }

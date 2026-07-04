@@ -51,10 +51,19 @@ struct RootView: View {
         .task {
             store.resumeExpiredPauses()
             await store.syncNotificationsIfAuthorized()
+            await store.performAutoSyncIfEnabled()
         }
         .onChange(of: scenePhase) { _, phase in
-            guard phase == .active else { return }
-            store.resumeExpiredPauses()
+            switch phase {
+            case .active:
+                store.resumeExpiredPauses()
+            case .background:
+                Task {
+                    await store.performAutoSyncIfEnabled()
+                }
+            default:
+                break
+            }
         }
     }
 }

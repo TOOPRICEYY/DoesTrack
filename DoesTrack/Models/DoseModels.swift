@@ -374,6 +374,17 @@ struct GitHubSyncSettings: Codable, Equatable {
     var filePath: String
     var lastRemoteSHA: String?
     var lastSyncedAt: Date?
+    var autoSyncEnabled: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case owner
+        case repository
+        case branch
+        case filePath
+        case lastRemoteSHA
+        case lastSyncedAt
+        case autoSyncEnabled
+    }
 
     init(
         owner: String = "",
@@ -381,7 +392,8 @@ struct GitHubSyncSettings: Codable, Equatable {
         branch: String = "main",
         filePath: String = "DoesTrack/doestrack-sync.json",
         lastRemoteSHA: String? = nil,
-        lastSyncedAt: Date? = nil
+        lastSyncedAt: Date? = nil,
+        autoSyncEnabled: Bool = false
     ) {
         self.owner = owner
         self.repository = repository
@@ -389,6 +401,18 @@ struct GitHubSyncSettings: Codable, Equatable {
         self.filePath = filePath
         self.lastRemoteSHA = lastRemoteSHA
         self.lastSyncedAt = lastSyncedAt
+        self.autoSyncEnabled = autoSyncEnabled
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        owner = try container.decode(String.self, forKey: .owner)
+        repository = try container.decode(String.self, forKey: .repository)
+        branch = try container.decode(String.self, forKey: .branch)
+        filePath = try container.decode(String.self, forKey: .filePath)
+        lastRemoteSHA = try container.decodeIfPresent(String.self, forKey: .lastRemoteSHA)
+        lastSyncedAt = try container.decodeIfPresent(Date.self, forKey: .lastSyncedAt)
+        autoSyncEnabled = try container.decodeIfPresent(Bool.self, forKey: .autoSyncEnabled) ?? false
     }
 
     var isRepositoryConfigured: Bool {

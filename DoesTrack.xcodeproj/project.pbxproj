@@ -42,6 +42,7 @@
 		DF56F81A984BDBDF3DBA09FE /* DoesTrackApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9D3D64D26477779652CC079 /* DoesTrackApp.swift */; };
 		E165B7A3DC000590DE91D103 /* WellnessViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 297BD5EDD1E379F5FE4D000B /* WellnessViews.swift */; };
 		F35F1D21165568F2CDCC0578 /* KeychainTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20769AD02BC786210ACC14B /* KeychainTokenStore.swift */; };
+		F6E7BCCBB6A5C9C55B85ED10 /* DoseStore+Sync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D5FFAB2CC48F61389499302 /* DoseStore+Sync.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,6 +76,7 @@
 		71E63C46CD864B15945FE9A6 /* DoseStore+Wellness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DoseStore+Wellness.swift"; sourceTree = "<group>"; };
 		7AA7EAF18D46B2B43D3CE69C /* TrackerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackerView.swift; sourceTree = "<group>"; };
 		7ABE65328E4D0DB924E1B585 /* HomeCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCards.swift; sourceTree = "<group>"; };
+		7D5FFAB2CC48F61389499302 /* DoseStore+Sync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DoseStore+Sync.swift"; sourceTree = "<group>"; };
 		8261868164F505BC52FE212B /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		92C3F94EBD8D00A0441187B6 /* DoseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoseStore.swift; sourceTree = "<group>"; };
 		A20769AD02BC786210ACC14B /* KeychainTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTokenStore.swift; sourceTree = "<group>"; };
@@ -174,6 +176,7 @@
 			isa = PBXGroup;
 			children = (
 				92C3F94EBD8D00A0441187B6 /* DoseStore.swift */,
+				7D5FFAB2CC48F61389499302 /* DoseStore+Sync.swift */,
 				71E63C46CD864B15945FE9A6 /* DoseStore+Wellness.swift */,
 				DA578766BB396E7E45151025 /* GitHubSyncClient.swift */,
 				A7FEEF460822A8B96B7EEB2A /* HealthKitService.swift */,
@@ -307,6 +310,7 @@
 				DF56F81A984BDBDF3DBA09FE /* DoesTrackApp.swift in Sources */,
 				82BC538404CFB31BF5993174 /* DoseLoggingViews.swift in Sources */,
 				B528E8B62F60003F119D094A /* DoseModels.swift in Sources */,
+				F6E7BCCBB6A5C9C55B85ED10 /* DoseStore+Sync.swift in Sources */,
 				0919BF63201C820BDA9C06E9 /* DoseStore+Wellness.swift in Sources */,
 				014CBBF9228D50819E647998 /* DoseStore.swift in Sources */,
 				7B56DE5D9C60A429CDF95683 /* GitHubSyncClient.swift in Sources */,

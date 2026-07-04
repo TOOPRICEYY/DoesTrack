@@ -34,6 +34,7 @@ struct SyncView: View {
             Form {
                 accountSection
                 repositorySection
+                autoSyncSection
                 actionsSection
                 statusSection
             }
@@ -153,6 +154,29 @@ struct SyncView: View {
                 saveRepositorySettings()
             } label: {
                 Label("Save Repository Settings", systemImage: "externaldrive.fill")
+            }
+        }
+    }
+
+    private var autoSyncSection: some View {
+        Section("Auto Sync") {
+            Toggle("Sync automatically", isOn: Binding(
+                get: { store.syncSettings.autoSyncEnabled },
+                set: { enabled in
+                    settings.autoSyncEnabled = enabled
+                    store.setAutoSync(enabled: enabled)
+                }
+            ))
+            .disabled(!settings.isRepositoryConfigured)
+
+            Text("Runs the pull-merge-push flow on app launch and when the app goes to the background, at most every 10 minutes. A dismissible warning appears on Home when more than a week passes without a sync.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            if let error = store.lastAutoSyncError, !error.isEmpty {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .font(.footnote)
+                    .foregroundStyle(.orange)
             }
         }
     }
