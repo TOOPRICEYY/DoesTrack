@@ -13,6 +13,7 @@ struct ModelHomeView: View {
     @State private var loggingDose: ScheduledDose?
     @State private var pauseMedication: Medication?
     @State private var showsUnscheduledLog = false
+    @State private var editingLog: DoseLog?
     @State private var activeCardSheet: HomeCardSheet?
 
     enum HomeCardSheet: String, Identifiable {
@@ -90,6 +91,10 @@ struct ModelHomeView: View {
             }
             .sheet(isPresented: $showsUnscheduledLog) {
                 LogDoseSheet(unscheduledOn: selectedDate)
+                    .environmentObject(store)
+            }
+            .sheet(item: $editingLog) { log in
+                LogDoseSheet(editingLog: log)
                     .environmentObject(store)
             }
             .sheet(item: $activeCardSheet) { sheet in
@@ -210,12 +215,14 @@ struct ModelHomeView: View {
 
     private var configuredHome: some View {
         VStack(alignment: .leading, spacing: 20) {
-            if !scheduledDosesForSelectedDate.isEmpty {
+            if !scheduledDosesForSelectedDate.isEmpty || !unscheduledLogsForSelectedDate.isEmpty {
                 HomeScheduledDoseSection(
                     date: selectedDate,
                     doses: scheduledDosesForSelectedDate,
+                    unscheduledLogs: unscheduledLogsForSelectedDate,
                     onLogDose: { loggingDose = $0 },
-                    onMedicationActions: { pauseMedication = $0 }
+                    onMedicationActions: { pauseMedication = $0 },
+                    onEditLog: { editingLog = $0 }
                 )
             } else {
                 stackSummarySection
@@ -228,7 +235,7 @@ struct ModelHomeView: View {
                     .font(.headline)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
-                    .background(.white, in: Capsule())
+                    .background(Color.appSurface, in: Capsule())
                     .overlay {
                         Capsule().stroke(Color.appBlue.opacity(0.4))
                     }
@@ -248,9 +255,9 @@ struct ModelHomeView: View {
                     .font(.headline)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
-                    .background(.white, in: Capsule())
+                    .background(Color.appSurface, in: Capsule())
                     .overlay {
-                        Capsule().stroke(.black.opacity(0.18))
+                        Capsule().stroke(.primary.opacity(0.18))
                     }
             }
             .frame(maxWidth: .infinity)
@@ -281,6 +288,10 @@ struct ModelHomeView: View {
 
     private var scheduledDosesForSelectedDate: [ScheduledDose] {
         store.scheduledDoses(on: selectedDate)
+    }
+
+    private var unscheduledLogsForSelectedDate: [DoseLog] {
+        store.logs(on: selectedDate).filter { $0.scheduleID == nil }
     }
 
     private var pinnedHomeCardsSection: some View {
@@ -379,7 +390,7 @@ struct DateStripView: View {
                                     .font(.title3.weight(.semibold))
                                     .foregroundStyle(isSelected ? .white : .primary)
                                     .frame(width: 44, height: 44)
-                                    .background(isSelected ? Color.appBlue : .white, in: Circle())
+                                    .background(isSelected ? Color.appBlue : Color.appSurface, in: Circle())
                                     .overlay {
                                         if hasMissed && !isSelected {
                                             Circle().stroke(.red.opacity(0.75), lineWidth: 2.5)

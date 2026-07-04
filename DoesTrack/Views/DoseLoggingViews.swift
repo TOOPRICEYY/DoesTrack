@@ -4,10 +4,13 @@ private let doseLoggingBackground = Color.appBackground
 private let doseLoggingBlue = Color.appBlue
 
 struct HomeScheduledDoseSection: View {
+    @EnvironmentObject private var store: DoseStore
     var date: Date
     var doses: [ScheduledDose]
+    var unscheduledLogs: [DoseLog] = []
     var onLogDose: (ScheduledDose) -> Void
     var onMedicationActions: (Medication) -> Void
+    var onEditLog: (DoseLog) -> Void = { _ in }
 
     private var groupedDoses: [(stackName: String, doses: [ScheduledDose])] {
         Dictionary(grouping: doses, by: { $0.medication.stackName })
@@ -54,10 +57,62 @@ struct HomeScheduledDoseSection: View {
                             }
                         }
                     }
-                    .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(.black.opacity(0.10))
+                            .stroke(.primary.opacity(0.10))
+                    }
+                }
+            }
+
+            if !unscheduledLogs.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Unscheduled")
+                        .font(.title.bold())
+
+                    VStack(spacing: 0) {
+                        ForEach(unscheduledLogs) { log in
+                            Button {
+                                onEditLog(log)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: log.status.systemImage)
+                                        .foregroundStyle(log.status.tint)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack(spacing: 8) {
+                                            Text(store.medication(for: log.medicationID)?.name ?? "Medication")
+                                                .font(.headline.weight(.bold))
+                                                .foregroundStyle(.primary)
+                                                .lineLimit(1)
+                                                .minimumScaleFactor(0.72)
+                                            Text("\(log.amount.formatted(.number.precision(.fractionLength(0...2)))) \(store.medication(for: log.medicationID)?.unit.uppercased() ?? "")")
+                                                .font(.headline)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        Text("\((log.takenAt ?? log.scheduledAt).formatted(date: .omitted, time: .shortened)) · \(log.status.label)")
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "pencil")
+                                        .font(.title3.weight(.semibold))
+                                        .foregroundStyle(doseLoggingBlue)
+                                        .frame(width: 54, height: 54)
+                                }
+                                .padding(.horizontal)
+                                .padding(.vertical, 13)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Edit unscheduled dose")
+                            if log.id != unscheduledLogs.last?.id {
+                                Divider().padding(.leading, 40)
+                            }
+                        }
+                    }
+                    .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(.primary.opacity(0.10))
                     }
                 }
             }
@@ -197,7 +252,7 @@ struct PauseMedicationSheet: View {
                             .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                             .overlay {
                                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .stroke(.black.opacity(0.08))
+                                    .stroke(.primary.opacity(0.08))
                             }
                             .accessibilityLabel("Pause days")
 
@@ -225,7 +280,7 @@ struct PauseMedicationSheet: View {
                 .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(.black.opacity(0.08))
+                        .stroke(.primary.opacity(0.08))
                 }
 
                 Spacer(minLength: 0)
@@ -792,10 +847,10 @@ struct LogDoseSheet: View {
                 DatePicker("Time", selection: $loggedTime, displayedComponents: .hourAndMinute)
                     .labelsHidden()
                     .padding(.horizontal, 8)
-                    .background(.white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(.black.opacity(0.16))
+                            .stroke(.primary.opacity(0.16))
                     }
             }
 
@@ -821,10 +876,10 @@ struct LogDoseSheet: View {
                                 .foregroundStyle(siteReaction == reaction ? .red : .secondary)
                                 .padding(.horizontal, 18)
                                 .padding(.vertical, 12)
-                                .background(siteReaction == reaction ? Color.red.opacity(0.10) : .white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .background(siteReaction == reaction ? Color.red.opacity(0.10) : Color.appSurface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .stroke(siteReaction == reaction ? Color.red.opacity(0.42) : Color.black.opacity(0.18), lineWidth: 1.5)
+                                        .stroke(siteReaction == reaction ? Color.red.opacity(0.42) : Color.primary.opacity(0.18), lineWidth: 1.5)
                                 }
                         }
                     }
@@ -840,10 +895,10 @@ struct LogDoseSheet: View {
                 TextField("Notes", text: $notes, axis: .vertical)
                     .lineLimit(2...4)
                     .padding()
-                    .background(.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(.black.opacity(0.08))
+                            .stroke(.primary.opacity(0.08))
                     }
             }
 
@@ -1089,7 +1144,7 @@ private struct WastedDoseSheet: View {
                     .padding(.trailing, 22)
             }
             .frame(minHeight: 78)
-            .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .stroke(doseLoggingBlue.opacity(0.56), lineWidth: 2)
@@ -1132,9 +1187,9 @@ private struct WastedDoseSheet: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 18)
                 .padding(.vertical, 12)
-                .background(.white, in: Capsule())
+                .background(Color.appSurface, in: Capsule())
                 .overlay {
-                    Capsule().stroke(.black.opacity(0.18), lineWidth: 1.5)
+                    Capsule().stroke(.primary.opacity(0.18), lineWidth: 1.5)
                 }
         }
         .buttonStyle(.plain)
@@ -1284,10 +1339,10 @@ private struct DoseLoggingFormatter {
 private extension View {
     func doseLoggingCard() -> some View {
         padding()
-            .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(.black.opacity(0.08))
+                    .stroke(.primary.opacity(0.08))
             }
     }
 }
