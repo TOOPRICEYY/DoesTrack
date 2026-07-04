@@ -8,6 +8,7 @@ struct CalendarShotsView: View {
     @State private var showsEditor = false
     @State private var showsManualDose = false
     @State private var loggingDose: ScheduledDose?
+    @State private var editingLog: DoseLog?
 
     private var calendar: Calendar { .doseTrackCalendar }
 
@@ -44,6 +45,10 @@ struct CalendarShotsView: View {
             }
             .sheet(item: $loggingDose) { dose in
                 LogDoseSheet(scheduledDose: dose)
+                    .environmentObject(store)
+            }
+            .sheet(item: $editingLog) { log in
+                LogDoseSheet(editingLog: log)
                     .environmentObject(store)
             }
         }
@@ -107,6 +112,7 @@ struct CalendarShotsView: View {
 
     private var selectedDayCard: some View {
         let doses = store.scheduledDoses(on: selectedDate)
+        let unscheduledLogs = store.logs(on: selectedDate).filter { $0.scheduleID == nil }
         return ModelCard {
             VStack(alignment: .leading, spacing: 18) {
                 HStack {
@@ -125,7 +131,7 @@ struct CalendarShotsView: View {
                     .font(.headline)
                 }
 
-                if doses.isEmpty {
+                if doses.isEmpty && unscheduledLogs.isEmpty {
                     Text("No doses on this day")
                 } else {
                     VStack(spacing: 10) {
@@ -133,6 +139,44 @@ struct CalendarShotsView: View {
                             CalendarScheduledDoseRow(dose: dose) { selectedDose in
                                 loggingDose = selectedDose
                             }
+                        }
+
+                        ForEach(unscheduledLogs) { log in
+                            Button {
+                                editingLog = log
+                            } label: {
+                                HStack(spacing: 14) {
+                                    Image(systemName: log.status.systemImage)
+                                        .foregroundStyle(log.status.tint)
+                                        .font(.title3)
+                                        .frame(width: 32)
+
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text("\(log.amount.formatted(.number.precision(.fractionLength(0...2)))) \(store.medication(for: log.medicationID)?.displayDose.isEmpty == false ? (store.medication(for: log.medicationID)?.unit ?? "") : "") \(store.medication(for: log.medicationID)?.name ?? "Medication")")
+                                            .font(.title3)
+                                            .foregroundStyle(.primary)
+                                            .lineLimit(2)
+                                            .minimumScaleFactor(0.78)
+                                        Text("Unscheduled · \(log.status.label) · tap to edit")
+                                            .font(.headline)
+                                            .foregroundStyle(.secondary)
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: "pencil.circle")
+                                        .font(.title2.weight(.semibold))
+                                        .foregroundStyle(Color.appBlue)
+                                }
+                                .padding()
+                                .background(Color.appBlue.opacity(0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .stroke(Color.appBlue.opacity(0.32), lineWidth: 1.5)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Edit unscheduled dose")
                         }
                     }
                 }

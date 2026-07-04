@@ -468,6 +468,48 @@ final class DoseStore: ObservableObject {
         }
     }
 
+    /// Replaces an existing log in place, refunding the old batch/inventory
+    /// draw and applying the new one.
+    func updateLog(_ updated: DoseLog) {
+        guard let index = logs.firstIndex(where: { $0.id == updated.id }) else { return }
+
+        let previous = logs[index]
+        logs[index] = updated
+        logs.sort { $0.scheduledAt > $1.scheduledAt }
+
+        reconcileBatch(
+            previousLog: previous,
+            newBatchID: updated.status.deductsInventory ? updated.batchID : nil,
+            newAmount: updated.amount,
+            newStatus: updated.status
+        )
+        if previous.batchID == nil && updated.batchID == nil {
+            reconcileInventory(
+                medicationID: updated.medicationID,
+                oldAmount: previous.amount,
+                newAmount: updated.amount,
+                oldStatus: previous.status,
+                newStatus: updated.status
+            )
+        }
+    }
+
+    /// Removes a log entirely and refunds whatever it had drawn.
+    func deleteLog(_ log: DoseLog) {
+        logs.removeAll { $0.id == log.id }
+
+        reconcileBatch(previousLog: log, newBatchID: nil, newAmount: 0, newStatus: .skipped)
+        if log.batchID == nil {
+            reconcileInventory(
+                medicationID: log.medicationID,
+                oldAmount: log.amount,
+                newAmount: 0,
+                oldStatus: log.status,
+                newStatus: .skipped
+            )
+        }
+    }
+
     func logs(on date: Date) -> [DoseLog] {
         logs
             .filter { $0.scheduledAt.isSameDay(as: date) }

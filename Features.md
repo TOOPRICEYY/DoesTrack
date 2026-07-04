@@ -12,5 +12,5 @@
 		- [ ] What's new, hub, feedback,rate
 - [ ] Auto git sync
 	- [ ] Git auto sync is configurable and there will be a warning displayed if over a week has gone without syncing which is dismissable
-- [ ] Refinement: Ability to edit doses already logged on homepage, tracker tab and calendar tab
+- [x] Refinement: Ability to edit doses already logged on homepage, tracker tab and calendar tab
 - [ ] New Feature: When a unscheduled dose is logged and the dosing schedule type is interval based(ex every n days not day of the week) pose an option to shift future doses where the forthcoming scheduled doses are shifted to retain interval

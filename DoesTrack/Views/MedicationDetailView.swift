@@ -51,6 +51,7 @@ struct MedicationDetailView: View {
 
     @State private var mode: GraphMode = .doses
     @State private var bucket: Bucket = .daily
+    @State private var editingLog: DoseLog?
 
     private var supportsPK: Bool {
         PKParameterLibrary.parameterSet(for: medication) != nil
@@ -96,6 +97,10 @@ struct MedicationDetailView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
                 }
+            }
+            .sheet(item: $editingLog) { log in
+                LogDoseSheet(editingLog: log)
+                    .environmentObject(store)
             }
         }
     }
@@ -252,21 +257,32 @@ struct MedicationDetailView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(recent) { log in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text((log.takenAt ?? log.scheduledAt).formatted(date: .abbreviated, time: .shortened))
-                                    .font(.subheadline.weight(.semibold))
-                                if let site = log.site {
-                                    Text(site)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                        Button {
+                            editingLog = log
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text((log.takenAt ?? log.scheduledAt).formatted(date: .abbreviated, time: .shortened))
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                    if let site = log.site {
+                                        Text(site)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
+                                Spacer()
+                                Text("\(log.amount.formatted(.number.precision(.fractionLength(0...2)))) \(medication.unit)")
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(.primary)
+                                Image(systemName: "pencil")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
-                            Spacer()
-                            Text("\(log.amount.formatted(.number.precision(.fractionLength(0...2)))) \(medication.unit)")
-                                .font(.subheadline.bold())
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Edit dose from \((log.takenAt ?? log.scheduledAt).formatted(date: .abbreviated, time: .omitted))")
                         Divider()
                     }
                 }

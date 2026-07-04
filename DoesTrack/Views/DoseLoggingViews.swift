@@ -244,6 +244,7 @@ struct LogDoseSheet: View {
     enum Target {
         case scheduled(ScheduledDose)
         case unscheduled(date: Date)
+        case editLog(DoseLog)
     }
 
     @EnvironmentObject private var store: DoseStore
@@ -278,6 +279,45 @@ struct LogDoseSheet: View {
         _unit = State(initialValue: scheduledDose.medication.unit.uppercased())
         _method = State(initialValue: scheduledDose.medication.instructions.localizedCaseInsensitiveContains("IM") ? "IM" : "SubQ")
         _loggedTime = State(initialValue: Date())
+
+        if let log = scheduledDose.log {
+            prefill(from: log)
+        }
+    }
+
+    init(editingLog log: DoseLog) {
+        self.target = .editLog(log)
+        _selectedMedicationID = State(initialValue: log.medicationID)
+        _amountText = State(initialValue: DoseLoggingFormatter.amount(log.amount))
+        _unit = State(initialValue: "")
+        _method = State(initialValue: log.method ?? "SubQ")
+        _loggedTime = State(initialValue: log.takenAt ?? log.scheduledAt)
+        prefill(from: log)
+    }
+
+    /// Seeds editable state from an existing log so the sheet acts as an
+    /// editor rather than starting from schedule defaults.
+    private mutating func prefill(from log: DoseLog) {
+        _amountText = State(initialValue: DoseLoggingFormatter.amount(log.amount))
+        if let method = log.method {
+            _method = State(initialValue: method)
+        }
+        if let site = log.site {
+            _injectionSite = State(initialValue: site)
+        }
+        _notes = State(initialValue: log.notes)
+        _showsNotes = State(initialValue: !log.notes.isEmpty)
+        if let takenAt = log.takenAt {
+            _loggedTime = State(initialValue: takenAt)
+        }
+        if let pain = log.painLevel {
+            _painLevel = State(initialValue: Double(pain))
+        }
+        if let reaction = log.siteReaction {
+            _siteReaction = State(initialValue: reaction)
+        }
+        _showsAdvanced = State(initialValue: log.painLevel != nil || log.siteReaction != nil)
+        _selectedBatchID = State(initialValue: log.batchID)
     }
 
     init(unscheduledOn date: Date) {
@@ -298,10 +338,24 @@ struct LogDoseSheet: View {
         scheduledDose != nil
     }
 
+    /// The log being edited, when the sheet was opened on an existing entry.
+    private var existingLog: DoseLog? {
+        switch target {
+        case .scheduled(let dose): return dose.log
+        case .unscheduled: return nil
+        case .editLog(let log): return log
+        }
+    }
+
+    private var isEditingExisting: Bool {
+        existingLog != nil
+    }
+
     private var targetDate: Date {
         switch target {
         case .scheduled(let dose): return dose.scheduledAt
         case .unscheduled(let date): return date
+        case .editLog(let log): return log.takenAt ?? log.scheduledAt
         }
     }
 
@@ -342,7 +396,7 @@ struct LogDoseSheet: View {
                 Button {
                     saveDose(status: .taken)
                 } label: {
-                    Label("Log Dose", systemImage: "checkmark.circle.fill")
+                    Label(isEditingExisting ? "Update Dose" : "Log Dose", systemImage: "checkmark.circle.fill")
                         .font(.title2.bold())
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -353,25 +407,41 @@ struct LogDoseSheet: View {
                 .disabled(medication == nil || resolvedActiveAmount == nil)
                 .accessibilityLabel("Log Dose")
 
-                HStack {
-                    if isScheduled {
-                        Button("Skip this dose") {
-                            showsSkipReasons = true
-                        }
-                        .frame(maxWidth: .infinity)
-
-                        Divider().frame(height: 34)
+                if let existingLog {
+                    Button(role: .destructive) {
+                        store.deleteLog(existingLog)
+                        dismiss()
+                    } label: {
+                        Label("Delete log entry", systemImage: "trash")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
                     }
-
-                    Button("Wasted dose") {
-                        showsWastedDose = true
-                    }
-                    .disabled(medication == nil)
-                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel("Delete log entry")
                 }
-                .font(.headline)
-                .foregroundStyle(.secondary)
-                .padding(.bottom, 18)
+
+                if case .editLog = target {
+                    EmptyView()
+                } else {
+                    HStack {
+                        if isScheduled {
+                            Button("Skip this dose") {
+                                showsSkipReasons = true
+                            }
+                            .frame(maxWidth: .infinity)
+
+                            Divider().frame(height: 34)
+                        }
+
+                        Button("Wasted dose") {
+                            showsWastedDose = true
+                        }
+                        .disabled(medication == nil)
+                        .frame(maxWidth: .infinity)
+                    }
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                    .padding(.bottom, 18)
+                }
             }
             .padding(.horizontal)
         }
@@ -384,14 +454,17 @@ struct LogDoseSheet: View {
             }
         }
         .onAppear {
-            if let suggested = store.suggestedInjectionSite(from: siteOptions) {
+            if !isEditingExisting, let suggested = store.suggestedInjectionSite(from: siteOptions) {
                 injectionSite = suggested
             }
             if selectedMedicationID == nil {
                 selectedMedicationID = selectableMedications.first?.id
                 if let medication { seed(from: medication) }
-            } else if selectedBatchID == nil, let medication {
+            } else if !isEditingExisting, selectedBatchID == nil, let medication {
                 selectedBatchID = store.defaultBatch(for: medication.id)?.id
+            }
+            if unit.isEmpty, let medication {
+                unit = medication.unit.uppercased()
             }
         }
         .onChange(of: selectedMedicationID) { _, newValue in
@@ -428,10 +501,7 @@ struct LogDoseSheet: View {
                 .accessibilityLabel("Close log dose")
             }
 
-            if isScheduled {
-                Text(medication?.name ?? "")
-                    .font(.title.bold())
-            } else {
+            if case .unscheduled = target {
                 Menu {
                     ForEach(selectableMedications) { candidate in
                         Button(candidate.name) {
@@ -450,6 +520,9 @@ struct LogDoseSheet: View {
                     .foregroundStyle(.primary)
                 }
                 .accessibilityLabel("Choose medication")
+            } else {
+                Text(medication?.name ?? "")
+                    .font(.title.bold())
             }
 
             Text(subtitleText)
@@ -461,6 +534,9 @@ struct LogDoseSheet: View {
     private var subtitleText: String {
         if let scheduledDose {
             return "\(scheduledDose.schedule.frequencyLabel) · \(method)"
+        }
+        if case .editLog = target {
+            return "Editing dose · \(targetDate.formatted(date: .abbreviated, time: .omitted)) · \(method)"
         }
         return "Unscheduled · \(targetDate.formatted(date: .abbreviated, time: .omitted)) · \(method)"
     }
@@ -811,6 +887,19 @@ struct LogDoseSheet: View {
                 batchID: selectedBatchID,
                 volumeMl: resolvedVolumeMl
             )
+        case .editLog(let original):
+            guard let amount = resolvedActiveAmount else { return }
+            var updated = original
+            updated.amount = amount
+            updated.takenAt = original.takenAt == nil ? nil : effectiveLoggedAt
+            updated.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.method = method
+            updated.site = injectionSite
+            updated.painLevel = showsAdvanced ? Int(painLevel) : nil
+            updated.siteReaction = showsAdvanced && siteReaction != "None" ? siteReaction : nil
+            updated.batchID = selectedBatchID
+            updated.volumeMl = resolvedVolumeMl
+            store.updateLog(updated)
         }
         dismiss()
     }
