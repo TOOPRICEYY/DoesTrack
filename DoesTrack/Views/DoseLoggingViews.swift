@@ -253,6 +253,10 @@ struct LogDoseSheet: View {
     @State private var siteReaction = "None"
     @State private var showsSkipReasons = false
     @State private var showsWastedDose = false
+    @State private var selectedBatchID: UUID?
+    /// Whether the amount field is the active quantity (mg/IU/…) or the
+    /// constituted volume in mL. mL entry needs a batch concentration.
+    @State private var entersVolume = false
 
     var scheduledDose: ScheduledDose
 
@@ -287,6 +291,9 @@ struct LogDoseSheet: View {
                 }
 
                 doseCard
+                if !availableBatches.isEmpty {
+                    batchCard
+                }
                 methodCard
                 injectionSiteCard
 
@@ -340,16 +347,119 @@ struct LogDoseSheet: View {
             if let suggested = store.suggestedInjectionSite(from: siteOptions) {
                 injectionSite = suggested
             }
+            if selectedBatchID == nil {
+                selectedBatchID = store.defaultBatch(for: scheduledDose.medication.id)?.id
+            }
         }
         .sheet(isPresented: $showsWastedDose) {
             WastedDoseSheet(
                 medication: scheduledDose.medication,
-                standardAmount: Double(amountText) ?? scheduledDose.schedule.amount,
-                unit: unit
+                standardAmount: resolvedActiveAmount ?? scheduledDose.schedule.amount,
+                unit: scheduledDose.medication.unit.uppercased()
             ) { amount in
                 recordWastedDose(amount: amount)
             }
         }
+    }
+
+    // MARK: Batch draw
+
+    private var availableBatches: [MedicationBatch] {
+        store.batches(for: scheduledDose.medication.id)
+    }
+
+    private var selectedBatch: MedicationBatch? {
+        selectedBatchID.flatMap { store.batch(for: $0) }
+    }
+
+    private var batchConcentration: Double? {
+        selectedBatch?.concentrationPerMl
+    }
+
+    /// The dose in active units, whichever way it was entered.
+    private var resolvedActiveAmount: Double? {
+        guard let value = Double(amountText), value > 0 else { return nil }
+        if entersVolume, let batchConcentration, batchConcentration > 0 {
+            return value * batchConcentration
+        }
+        return value
+    }
+
+    /// The constituted volume, when it is known.
+    private var resolvedVolumeMl: Double? {
+        guard let value = Double(amountText), value > 0 else { return nil }
+        if entersVolume { return value }
+        guard let batchConcentration, batchConcentration > 0 else { return nil }
+        return value / batchConcentration
+    }
+
+    private var medicationUnitLabel: String {
+        let unit = scheduledDose.medication.unit
+        return unit.isEmpty ? "units" : unit
+    }
+
+    private var batchCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                Image(systemName: "shippingbox")
+                    .foregroundStyle(doseLoggingBlue)
+                Text("Batch")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Menu {
+                    Button("No batch") { selectedBatchID = nil }
+                    ForEach(availableBatches) { batch in
+                        Button {
+                            selectedBatchID = batch.id
+                        } label: {
+                            Text("\(batch.displayName) — \(batch.remainingQuantity.formatted(.number.precision(.fractionLength(0...1)))) \(medicationUnitLabel) left")
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 7) {
+                        Text(selectedBatch?.displayName ?? "No batch")
+                            .font(.headline)
+                            .lineLimit(1)
+                        Image(systemName: "chevron.down")
+                            .font(.caption)
+                    }
+                    .foregroundStyle(doseLoggingBlue)
+                }
+                .accessibilityLabel("Choose batch")
+            }
+
+            if let batch = selectedBatch {
+                HStack {
+                    if let concentration = batch.concentrationPerMl {
+                        Label("\(concentration.formatted(.number.precision(.fractionLength(0...2)))) \(medicationUnitLabel)/mL", systemImage: "eyedropper")
+                            .font(.headline)
+                            .foregroundStyle(.orange)
+                    }
+                    Spacer()
+                    Text("\(batch.remainingQuantity.formatted(.number.precision(.fractionLength(0...1)))) \(medicationUnitLabel) remaining")
+                        .font(.subheadline)
+                        .foregroundStyle(batch.remainingFraction < 0.15 ? .red : .secondary)
+                }
+
+                if batch.concentrationPerMl != nil {
+                    Picker("Log as", selection: $entersVolume) {
+                        Text(medicationUnitLabel.uppercased()).tag(false)
+                        Text("ML").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+
+                    if let active = resolvedActiveAmount, let volume = resolvedVolumeMl {
+                        Text(entersVolume
+                             ? "= \(active.formatted(.number.precision(.fractionLength(0...2)))) \(medicationUnitLabel) active"
+                             : "= \(volume.formatted(.number.precision(.fractionLength(0...3)))) mL constituted")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(doseLoggingBlue)
+                    }
+                }
+            }
+        }
+        .doseLoggingCard()
     }
 
     private var doseCard: some View {
@@ -559,7 +669,7 @@ struct LogDoseSheet: View {
     }
 
     private func saveDose(status: DoseLogStatus, skipReason: String? = nil) {
-        let amount = Double(amountText) ?? scheduledDose.schedule.amount
+        let amount = resolvedActiveAmount ?? scheduledDose.schedule.amount
 
         store.record(
             scheduledDose,
@@ -571,7 +681,9 @@ struct LogDoseSheet: View {
             site: injectionSite,
             painLevel: showsAdvanced ? Int(painLevel) : nil,
             siteReaction: showsAdvanced && siteReaction != "None" ? siteReaction : nil,
-            skipReason: skipReason
+            skipReason: skipReason,
+            batchID: selectedBatchID,
+            volumeMl: resolvedVolumeMl
         )
         dismiss()
     }
@@ -586,7 +698,9 @@ struct LogDoseSheet: View {
             medicationID: scheduledDose.medication.id,
             amount: amount,
             occurredAt: Date(),
-            notes: noteParts.joined(separator: " · ")
+            notes: noteParts.joined(separator: " · "),
+            batchID: selectedBatchID,
+            volumeMl: batchConcentration.map { $0 > 0 ? amount / $0 : 0 }
         )
         dismiss()
     }

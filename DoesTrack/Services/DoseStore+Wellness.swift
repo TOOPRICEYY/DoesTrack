@@ -181,6 +181,59 @@ extension DoseStore {
         reconPlans.removeAll { $0.id == plan.id }
     }
 
+    // MARK: Batches
+
+    func batch(for id: UUID) -> MedicationBatch? {
+        batches.first { $0.id == id }
+    }
+
+    func batches(for medicationID: UUID, includeFinished: Bool = false) -> [MedicationBatch] {
+        batches
+            .filter { $0.medicationID == medicationID && (includeFinished || !$0.isFinished) }
+            .sorted { $0.purchaseDate > $1.purchaseDate }
+    }
+
+    /// Batch a new dose should draw from: the most recently purchased,
+    /// unfinished batch with anything left in it.
+    func defaultBatch(for medicationID: UUID) -> MedicationBatch? {
+        batches(for: medicationID).first { !$0.isDepleted }
+            ?? batches(for: medicationID).first
+    }
+
+    func upsertBatch(_ batch: MedicationBatch) {
+        var updated = batch
+        updated.updatedAt = Date()
+
+        if let index = batches.firstIndex(where: { $0.id == batch.id }) {
+            batches[index] = updated
+        } else {
+            batches.append(updated)
+        }
+        batches.sort { $0.purchaseDate > $1.purchaseDate }
+    }
+
+    func deleteBatch(_ batch: MedicationBatch) {
+        batches.removeAll { $0.id == batch.id }
+    }
+
+    /// Applies a remaining-quantity delta (negative = draw) in active units.
+    func adjustBatch(id: UUID, delta: Double) {
+        guard let index = batches.firstIndex(where: { $0.id == id }) else { return }
+        batches[index].remainingQuantity = max(0, batches[index].remainingQuantity + delta)
+        batches[index].updatedAt = Date()
+    }
+
+    /// Refunds the previous log's batch draw and applies the new one.
+    func reconcileBatch(previousLog: DoseLog?, newBatchID: UUID?, newAmount: Double, newStatus: DoseLogStatus) {
+        if let previousLog, let oldBatchID = previousLog.batchID, previousLog.status.deductsInventory {
+            adjustBatch(id: oldBatchID, delta: previousLog.amount)
+        }
+
+        if let newBatchID, newStatus.deductsInventory {
+            adjustBatch(id: newBatchID, delta: -newAmount)
+        }
+    }
+
     // MARK: Injection sites
 
     static let defaultInjectionSites = [

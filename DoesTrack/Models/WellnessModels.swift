@@ -251,3 +251,74 @@ struct ChatMessage: Identifiable, Codable, Equatable {
     }
 }
 
+// MARK: - Medication batches
+
+/// A purchased vial/lot of a medication. Replaces the old inventory counters:
+/// quantities are tracked in the medication's active units (e.g. mg, IU),
+/// with an optional concentration for constituted (mL) logging.
+struct MedicationBatch: Identifiable, Codable, Equatable {
+    var id: UUID
+    var medicationID: UUID
+    var supplier: String
+    var label: String
+    /// Active units (the medication's unit) per mL once constituted.
+    var concentrationPerMl: Double?
+    var purchaseDate: Date
+    var totalQuantity: Double
+    var remainingQuantity: Double
+    var notes: String
+    var isFinished: Bool
+    var createdAt: Date
+    var updatedAt: Date
+
+    init(
+        id: UUID = UUID(),
+        medicationID: UUID,
+        supplier: String,
+        label: String = "",
+        concentrationPerMl: Double? = nil,
+        purchaseDate: Date = Date(),
+        totalQuantity: Double,
+        remainingQuantity: Double? = nil,
+        notes: String = "",
+        isFinished: Bool = false,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.medicationID = medicationID
+        self.supplier = supplier
+        self.label = label
+        self.concentrationPerMl = concentrationPerMl
+        self.purchaseDate = purchaseDate
+        self.totalQuantity = totalQuantity
+        self.remainingQuantity = remainingQuantity ?? totalQuantity
+        self.notes = notes
+        self.isFinished = isFinished
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+
+    var displayName: String {
+        let trimmedLabel = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedLabel.isEmpty {
+            return supplier.isEmpty ? "Batch" : supplier
+        }
+        return supplier.isEmpty ? trimmedLabel : "\(supplier) · \(trimmedLabel)"
+    }
+
+    var isDepleted: Bool {
+        remainingQuantity <= 0
+    }
+
+    var remainingFraction: Double {
+        guard totalQuantity > 0 else { return 0 }
+        return max(0, min(1, remainingQuantity / totalQuantity))
+    }
+
+    /// Remaining volume in mL, when a concentration is known.
+    var remainingMl: Double? {
+        guard let concentrationPerMl, concentrationPerMl > 0 else { return nil }
+        return remainingQuantity / concentrationPerMl
+    }
+}

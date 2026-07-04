@@ -55,6 +55,10 @@ final class DoseStore: ObservableObject {
         didSet { save() }
     }
 
+    @Published var batches: [MedicationBatch] = [] {
+        didSet { save() }
+    }
+
     @Published var storageError: String?
     @Published var notificationAuthorization: UNAuthorizationStatus = .notDetermined
 
@@ -107,6 +111,7 @@ final class DoseStore: ObservableObject {
             cycles = database.cycles
             reconPlans = database.reconPlans.sorted { $0.createdAt > $1.createdAt }
             chatMessages = database.chatMessages.sorted { $0.createdAt < $1.createdAt }
+            batches = database.batches.sorted { $0.purchaseDate > $1.purchaseDate }
             storageError = nil
         } catch {
             storageError = "Unable to load DoesTrack data: \(error.localizedDescription)"
@@ -143,7 +148,8 @@ final class DoseStore: ObservableObject {
                 hydrationDays: hydrationDays,
                 cycles: cycles,
                 reconPlans: reconPlans,
-                chatMessages: chatMessages
+                chatMessages: chatMessages,
+                batches: batches
             )
             let data = try encoder.encode(database)
             try data.write(to: fileURL, options: [.atomic])
@@ -357,7 +363,9 @@ final class DoseStore: ObservableObject {
         site: String? = nil,
         painLevel: Int? = nil,
         siteReaction: String? = nil,
-        skipReason: String? = nil
+        skipReason: String? = nil,
+        batchID: UUID? = nil,
+        volumeMl: Double? = nil
     ) {
         let previousLog = logForDose(
             medicationID: scheduledDose.medication.id,
@@ -380,17 +388,29 @@ final class DoseStore: ObservableObject {
             site: administered ? site : nil,
             painLevel: administered ? painLevel : nil,
             siteReaction: administered ? siteReaction : nil,
-            skipReason: status == .skipped ? skipReason : nil
+            skipReason: status == .skipped ? skipReason : nil,
+            batchID: administered ? batchID : nil,
+            volumeMl: administered ? volumeMl : nil
         )
 
         upsertLog(log)
-        reconcileInventory(
-            medicationID: scheduledDose.medication.id,
-            oldAmount: previousLog?.amount,
+        reconcileBatch(
+            previousLog: previousLog,
+            newBatchID: administered ? batchID : nil,
             newAmount: loggedAmount,
-            oldStatus: previousLog?.status,
             newStatus: status
         )
+
+        // Legacy inventory counters only apply when no batch is involved.
+        if batchID == nil && previousLog?.batchID == nil {
+            reconcileInventory(
+                medicationID: scheduledDose.medication.id,
+                oldAmount: previousLog?.amount,
+                newAmount: loggedAmount,
+                oldStatus: previousLog?.status,
+                newStatus: status
+            )
+        }
     }
 
     func recordManualDose(
@@ -398,7 +418,13 @@ final class DoseStore: ObservableObject {
         amount: Double,
         notes: String,
         scheduledAt: Date = Date(),
-        takenAt: Date = Date()
+        takenAt: Date = Date(),
+        method: String? = nil,
+        site: String? = nil,
+        painLevel: Int? = nil,
+        siteReaction: String? = nil,
+        batchID: UUID? = nil,
+        volumeMl: Double? = nil
     ) {
         let log = DoseLog(
             medicationID: medicationID,
@@ -407,13 +433,22 @@ final class DoseStore: ObservableObject {
             takenAt: takenAt,
             status: .taken,
             amount: amount,
-            notes: notes
+            notes: notes,
+            method: method,
+            site: site,
+            painLevel: painLevel,
+            siteReaction: siteReaction,
+            batchID: batchID,
+            volumeMl: volumeMl
         )
         upsertLog(log)
-        reconcileInventory(medicationID: medicationID, oldAmount: nil, newAmount: amount, oldStatus: nil, newStatus: .taken)
+        reconcileBatch(previousLog: nil, newBatchID: batchID, newAmount: amount, newStatus: .taken)
+        if batchID == nil {
+            reconcileInventory(medicationID: medicationID, oldAmount: nil, newAmount: amount, oldStatus: nil, newStatus: .taken)
+        }
     }
 
-    func recordWastedDose(medicationID: UUID, amount: Double, occurredAt: Date = Date(), notes: String = "") {
+    func recordWastedDose(medicationID: UUID, amount: Double, occurredAt: Date = Date(), notes: String = "", batchID: UUID? = nil, volumeMl: Double? = nil) {
         let log = DoseLog(
             medicationID: medicationID,
             scheduleID: nil,
@@ -421,10 +456,15 @@ final class DoseStore: ObservableObject {
             takenAt: occurredAt,
             status: .wasted,
             amount: amount,
-            notes: notes
+            notes: notes,
+            batchID: batchID,
+            volumeMl: volumeMl
         )
         upsertLog(log)
-        reconcileInventory(medicationID: medicationID, oldAmount: nil, newAmount: amount, oldStatus: nil, newStatus: .wasted)
+        reconcileBatch(previousLog: nil, newBatchID: batchID, newAmount: amount, newStatus: .wasted)
+        if batchID == nil {
+            reconcileInventory(medicationID: medicationID, oldAmount: nil, newAmount: amount, oldStatus: nil, newStatus: .wasted)
+        }
     }
 
     func logs(on date: Date) -> [DoseLog] {
@@ -449,7 +489,8 @@ final class DoseStore: ObservableObject {
             labResults: labResults,
             hydrationDays: hydrationDays,
             cycles: cycles,
-            reconPlans: reconPlans
+            reconPlans: reconPlans,
+            batches: batches
         )
     }
 
@@ -463,6 +504,7 @@ final class DoseStore: ObservableObject {
         hydrationDays = backup.hydrationDays
         cycles = backup.cycles
         reconPlans = backup.reconPlans.sorted { $0.createdAt > $1.createdAt }
+        batches = backup.batches.sorted { $0.purchaseDate > $1.purchaseDate }
     }
 
     func updateHealthMetrics(_ snapshot: HealthMetricsSnapshot) {
@@ -524,6 +566,8 @@ final class DoseStore: ObservableObject {
         reconPlans = Self.mergeByID(local: reconPlans, remote: backup.reconPlans, newer: { $0.createdAt })
             .sorted { $0.createdAt > $1.createdAt }
         hydrationDays = mergeHydration(remote: backup.hydrationDays)
+        batches = Self.mergeByID(local: batches, remote: backup.batches, newer: { $0.updatedAt })
+            .sorted { $0.purchaseDate > $1.purchaseDate }
     }
 
     private static func mergeByID<T: Identifiable>(local: [T], remote: [T], newer: (T) -> Date) -> [T] {

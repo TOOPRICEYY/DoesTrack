@@ -57,10 +57,6 @@ final class DoesTrackUITests: XCTestCase {
         app.buttons["Dose"].waitAndTap()
         app.buttons["Next"].waitAndTap()
 
-        if app.switches["Add Inventory"].firstMatch.waitForExistence(timeout: 2) {
-            app.switches["Add Inventory"].firstMatch.tap()
-        }
-
         app.buttons["Next"].waitAndTap()
         XCTAssertTrue(app.staticTexts["Protocol"].waitForExistence(timeout: 3))
         app.buttons["Save"].waitAndTap()

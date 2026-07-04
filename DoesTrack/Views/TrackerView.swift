@@ -57,6 +57,8 @@ struct ModelTrackerView: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel("\(medication.name) details")
                     }
+
+                    BatchesSection()
                 }
                 .padding()
                 .padding(.bottom, 110)

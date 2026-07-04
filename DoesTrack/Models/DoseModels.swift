@@ -307,6 +307,10 @@ struct DoseLog: Identifiable, Codable, Equatable {
     var painLevel: Int?
     var siteReaction: String?
     var skipReason: String?
+    /// Batch the dose was drawn from, when batch tracking is used.
+    var batchID: UUID?
+    /// Constituted volume drawn, when logged via mL.
+    var volumeMl: Double?
 
     init(
         id: UUID = UUID(),
@@ -321,7 +325,9 @@ struct DoseLog: Identifiable, Codable, Equatable {
         site: String? = nil,
         painLevel: Int? = nil,
         siteReaction: String? = nil,
-        skipReason: String? = nil
+        skipReason: String? = nil,
+        batchID: UUID? = nil,
+        volumeMl: Double? = nil
     ) {
         self.id = id
         self.medicationID = medicationID
@@ -336,6 +342,8 @@ struct DoseLog: Identifiable, Codable, Equatable {
         self.painLevel = painLevel
         self.siteReaction = siteReaction
         self.skipReason = skipReason
+        self.batchID = batchID
+        self.volumeMl = volumeMl
     }
 }
 
@@ -599,6 +607,7 @@ struct DoseDatabase: Codable, Equatable {
     var cycles: [ProtocolCycle]
     var reconPlans: [ReconPlan]
     var chatMessages: [ChatMessage]
+    var batches: [MedicationBatch]
 
     init(
         medications: [Medication],
@@ -612,7 +621,8 @@ struct DoseDatabase: Codable, Equatable {
         hydrationDays: [HydrationDay] = [],
         cycles: [ProtocolCycle] = [],
         reconPlans: [ReconPlan] = [],
-        chatMessages: [ChatMessage] = []
+        chatMessages: [ChatMessage] = [],
+        batches: [MedicationBatch] = []
     ) {
         self.medications = medications
         self.logs = logs
@@ -626,6 +636,7 @@ struct DoseDatabase: Codable, Equatable {
         self.cycles = cycles
         self.reconPlans = reconPlans
         self.chatMessages = chatMessages
+        self.batches = batches
     }
 
     init(from decoder: Decoder) throws {
@@ -642,6 +653,7 @@ struct DoseDatabase: Codable, Equatable {
         cycles = try container.decodeIfPresent([ProtocolCycle].self, forKey: .cycles) ?? []
         reconPlans = try container.decodeIfPresent([ReconPlan].self, forKey: .reconPlans) ?? []
         chatMessages = try container.decodeIfPresent([ChatMessage].self, forKey: .chatMessages) ?? []
+        batches = try container.decodeIfPresent([MedicationBatch].self, forKey: .batches) ?? []
     }
 }
 
@@ -657,6 +669,7 @@ struct DoseBackup: Codable, Equatable {
     var hydrationDays: [HydrationDay]
     var cycles: [ProtocolCycle]
     var reconPlans: [ReconPlan]
+    var batches: [MedicationBatch]
 
     // Chat messages are deliberately excluded: the Pulse chat promises
     // "stored on device only".
@@ -673,7 +686,8 @@ struct DoseBackup: Codable, Equatable {
         labResults: [LabResult] = [],
         hydrationDays: [HydrationDay] = [],
         cycles: [ProtocolCycle] = [],
-        reconPlans: [ReconPlan] = []
+        reconPlans: [ReconPlan] = [],
+        batches: [MedicationBatch] = []
     ) {
         self.schemaVersion = schemaVersion
         self.exportedAt = exportedAt
@@ -686,6 +700,7 @@ struct DoseBackup: Codable, Equatable {
         self.hydrationDays = hydrationDays
         self.cycles = cycles
         self.reconPlans = reconPlans
+        self.batches = batches
     }
 
     init(from decoder: Decoder) throws {
@@ -701,6 +716,7 @@ struct DoseBackup: Codable, Equatable {
         hydrationDays = try container.decodeIfPresent([HydrationDay].self, forKey: .hydrationDays) ?? []
         cycles = try container.decodeIfPresent([ProtocolCycle].self, forKey: .cycles) ?? []
         reconPlans = try container.decodeIfPresent([ReconPlan].self, forKey: .reconPlans) ?? []
+        batches = try container.decodeIfPresent([MedicationBatch].self, forKey: .batches) ?? []
     }
 }
 
