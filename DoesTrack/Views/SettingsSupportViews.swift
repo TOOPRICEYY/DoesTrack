@@ -9,13 +9,9 @@ enum SettingsTopic: String, Identifiable {
     case healthData
     case preferences
     case timeZone
-    case whatsNew
-    case hub
-    case feedback
     case citations
     case about
     case faq
-    case rate
     case appUserID
 
     var id: String { rawValue }
@@ -26,13 +22,9 @@ enum SettingsTopic: String, Identifiable {
         case .healthData: return "Health Data"
         case .preferences: return "Preferences"
         case .timeZone: return "Time Zone"
-        case .whatsNew: return "What's New"
-        case .hub: return "DoesTrack Hub"
-        case .feedback: return "Send Feedback"
         case .citations: return "Medical Citations"
         case .about: return "About This App"
         case .faq: return "FAQ"
-        case .rate: return "Rate DoesTrack"
         case .appUserID: return "App User ID"
         }
     }
@@ -43,13 +35,9 @@ enum SettingsTopic: String, Identifiable {
         case .healthData: return "heart.fill"
         case .preferences: return "slider.horizontal.3"
         case .timeZone: return "globe.americas.fill"
-        case .whatsNew: return "seal.exclamation.fill"
-        case .hub: return "message.fill"
-        case .feedback: return "envelope.fill"
         case .citations: return "doc.text.fill"
         case .about: return "info.circle.fill"
         case .faq: return "questionmark.circle.fill"
-        case .rate: return "star.fill"
         case .appUserID: return "person.crop.circle.badge.questionmark"
         }
     }
@@ -123,20 +111,12 @@ struct SettingsDetailView: View {
             return "DoesTrack currently uses medication-level units, route, schedule, inventory, and reminder preferences."
         case .timeZone:
             return "Schedules use the device time zone through the app calendar."
-        case .whatsNew:
-            return "This build adds screenshot-matched tabs, protocol stacks, GitHub sync, and cited PK modelling."
-        case .hub:
-            return "Community and support links are not connected to a remote service in this local-first build."
-        case .feedback:
-            return "Use GitHub sync/export data when reporting reproducible data issues."
         case .citations:
             return "PK citations are attached inside Pulse > PK Model and summarized below."
         case .about:
             return "DoesTrack is a local-first SwiftUI protocol and medication tracker with optional GitHub repository backup."
         case .faq:
             return "Frequently asked operational questions are covered by the Pulse protocol question cards."
-        case .rate:
-            return "App Store rating is available after the app is distributed through TestFlight/App Store."
         case .appUserID:
             return appUserID.isEmpty ? "Generating..." : appUserID
         }
@@ -152,20 +132,12 @@ struct SettingsDetailView: View {
             return ["Per-medication dose units are saved.", "Routes are saved as protocol preferences.", "Inventory thresholds are stored per medication."]
         case .timeZone:
             return ["Schedule times are interpreted using the current device calendar.", "Travel-specific timezone overrides are not persisted yet."]
-        case .whatsNew:
-            return ["Model app tab structure replicated.", "Protocol wizard and stack management added.", "Pulse PK model includes citations."]
-        case .hub:
-            return ["No account or remote community dependency.", "GitHub backup can be used for support handoff."]
-        case .feedback:
-            return ["Include app version 1.0.", "Attach exported sync JSON only when it is safe to share.", "Remove tokens or private repo data before sharing logs."]
         case .citations:
             return ["DailyMed Mounjaro label for tirzepatide.", "Mannaerts 1998 and Saal 1991 for hCG.", "Nankin 1987 and DailyMed Depo-Testosterone for testosterone cypionate context.", "Wu et al. 2022 Frontiers in Pharmacology preclinical ADME study for BPC-157."]
         case .about:
             return ["Local JSON storage.", "Optional GitHub Contents API sync.", "No clinical dosing recommendations."]
         case .faq:
             return ["Add protocols from the stack button.", "Log doses from calendar/history surfaces.", "Review model limitations in Pulse > PK Model."]
-        case .rate:
-            return ["No App Store product identifier is configured in this source build."]
         case .appUserID:
             return ["Use this ID only for support correlation.", "It is generated locally and stored in app preferences."]
         }

@@ -6,10 +6,10 @@
 	- [x] Batches which store information like supplier, concentration, purchase date, quantity and other notes for a medication can be created and attached to protocols. Each dose stores the batch it was drawn from. Batches are displayed in there own block below medications within tracker tab where all detials can be modified including current quanity. Every dose modifies remaining quantity. When you take a dose their are options for logging via the constituded quanity(ex ml) or the active quanity(ex mg), the concentration is also called out for awareness. This replaces inventory functionality.
 - [x] Fix: Logging unscheduled dose in calendar view uses the same flow as a scheduled dose
 - [x] Refinement: Able to log unscheduled dose in home tab
-- [ ] Refinement: Remove all supurfious replication artifacts
-	- [ ] Profile Tab
-		- [ ] Subsciption info
-		- [ ] What's new, hub, feedback,rate
+- [x] Refinement: Remove all supurfious replication artifacts
+	- [x] Profile Tab
+		- [x] Subsciption info
+		- [x] What's new, hub, feedback,rate
 - [ ] Auto git sync
 	- [ ] Git auto sync is configurable and there will be a warning displayed if over a week has gone without syncing which is dismissable
 - [ ] Refinement: Ability to edit doses already logged on homepage, tracker tab and calendar tab

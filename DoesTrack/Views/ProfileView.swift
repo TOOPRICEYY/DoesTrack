@@ -52,8 +52,6 @@ struct ProfileView: View {
 
                     ProfileRow(icon: "trophy.fill", title: "Achievements", subtitle: "0 unlocked", tint: .yellow, trailing: AnyView(EmptyView()))
 
-                    ProfileRow(icon: "star.fill", title: "Your Subscription", subtitle: "Free Tier", tint: .gray)
-
                     SectionHeader(title: "PERSONALIZATION")
                     ProfileRow(icon: "paintpalette.fill", title: "Theme", subtitle: "Color, intensity, status, appearance", tint: Color.appBlue, trailing: AnyView(Circle().fill(Color.appBlue).frame(width: 28, height: 28)))
 
@@ -111,12 +109,6 @@ struct SettingsView: View {
                         settingsButton(.timeZone, subtitle: "Device time zone", trailing: nil)
                     }
 
-                    SectionHeader(title: "CONTENT")
-                    SettingsGroup {
-                        settingsButton(.whatsNew, subtitle: "See the latest features and updates", trailing: nil)
-                        settingsButton(.hub, subtitle: "Report bugs, make feature requests, talk to the dev", trailing: nil)
-                    }
-
                     SectionHeader(title: "DATA & PRIVACY")
                     NavigationLink {
                         SyncView()
@@ -128,11 +120,9 @@ struct SettingsView: View {
 
                     SectionHeader(title: "SUPPORT")
                     SettingsGroup {
-                        settingsButton(.feedback, subtitle: nil, trailing: nil)
                         settingsButton(.citations, subtitle: nil, trailing: nil)
                         settingsButton(.about, subtitle: nil, trailing: nil)
                         settingsButton(.faq, subtitle: nil, trailing: nil)
-                        settingsButton(.rate, subtitle: nil, trailing: nil)
                     }
 
                     SectionHeader(title: "ADVANCED")
