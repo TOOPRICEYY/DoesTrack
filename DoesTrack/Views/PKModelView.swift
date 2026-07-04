@@ -210,8 +210,8 @@ struct PKModelView: View {
             PKMetricCard(title: "Peak", value: exposure(profile.peakValue, unit: profile.unitLabel))
             PKMetricCard(title: "Trough", value: exposure(profile.troughValue, unit: profile.unitLabel))
             PKMetricCard(title: "Mean", value: exposure(profile.averageValue, unit: profile.unitLabel))
-            PKMetricCard(title: "Half-life", value: halfLife(profile.parameters.halfLifeDays))
-            PKMetricCard(title: "Scale", value: percent(profile.parameters.availabilityMultiplier))
+            PKMetricCard(title: "Elim. half-life", value: halfLife(profile.parameters.halfLifeDays))
+            PKMetricCard(title: "Absorption", value: halfLife(profile.absorptionHalfLifeDays))
         }
     }
 
@@ -228,6 +228,9 @@ struct PKModelView: View {
                 Label(profile.parameters.route, systemImage: "syringe")
                     .font(.caption.bold())
                     .foregroundStyle(pkBlue)
+                Text("Curve uses first-order absorption for the \(routeLabel(profile.medication.instructions)) route (absorption half-life \(halfLife(profile.absorptionHalfLifeDays))). IM absorbs faster than SubQ, giving a sharper, earlier peak.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -338,6 +341,13 @@ struct PKModelView: View {
 
     private func percent(_ value: Double) -> String {
         value.formatted(.percent.precision(.fractionLength(0)))
+    }
+
+    private func routeLabel(_ instructions: String) -> String {
+        let r = instructions.lowercased()
+        if r.contains("im") || r.contains("intramuscular") { return "IM" }
+        if r.contains("oral") { return "oral" }
+        return "SubQ"
     }
 }
 

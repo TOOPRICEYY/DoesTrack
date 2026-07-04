@@ -13,10 +13,27 @@ struct PKParameterSet: Identifiable {
     var matchTerms: [String]
     var halfLifeDays: Double
     var availabilityMultiplier: Double
+    /// First-order absorption half-life (days) for a subcutaneous depot.
+    var absorptionHalfLifeDaysSubQ: Double
+    /// IM absorption half-life; nil derives a faster value from the SubQ one.
+    var absorptionHalfLifeDaysIM: Double?
     var route: String
     var parameterSummary: String
     var modelNote: String
     var citations: [PKCitation]
+
+    /// Absorption half-life for the route the dose was actually given by.
+    /// IM absorbs faster (sharper, earlier peak) than SubQ; oral faster still.
+    func absorptionHalfLifeDays(forRoute route: String) -> Double {
+        let r = route.lowercased()
+        if r.contains("im") || r.contains("intramuscular") {
+            return absorptionHalfLifeDaysIM ?? absorptionHalfLifeDaysSubQ * 0.6
+        }
+        if r.contains("oral") {
+            return max(0.01, absorptionHalfLifeDaysSubQ * 0.2)
+        }
+        return absorptionHalfLifeDaysSubQ
+    }
 }
 
 struct PKDoseEvent: Identifiable {
@@ -43,6 +60,7 @@ struct PKMedicationProfile: Identifiable {
     var averageValue: Double
     var windowStart: Date
     var windowEnd: Date
+    var absorptionHalfLifeDays: Double
 
     var unitLabel: String {
         medication.unit.isEmpty ? "relative units" : "relative \(medication.unit)"
@@ -56,6 +74,8 @@ enum PKParameterLibrary {
             matchTerms: ["tirzepatide", "mounjaro", "zepbound"],
             halfLifeDays: 5.0,
             availabilityMultiplier: 0.80,
+            absorptionHalfLifeDaysSubQ: 0.5,
+            absorptionHalfLifeDaysIM: nil,
             route: "Subcutaneous",
             parameterSummary: "Half-life 5 days; SC absolute bioavailability 80%.",
             modelNote: "Uses the official label half-life and absolute bioavailability to estimate relative scheduled-dose exposure.",
@@ -72,6 +92,8 @@ enum PKParameterLibrary {
             matchTerms: ["hcg", "human chorionic gonadotropin", "chorionic gonadotropin"],
             halfLifeDays: 32.5 / 24.0,
             availabilityMultiplier: 1.0,
+            absorptionHalfLifeDaysSubQ: 0.4,
+            absorptionHalfLifeDaysIM: 0.25,
             route: "Subcutaneous or intramuscular",
             parameterSummary: "Half-life 32-33 hours; relative dose scale.",
             modelNote: "Uses the published average elimination half-life. Because the cited study reports relative SC/IM exposure rather than an absolute bioavailability for app dose units, dose scale is kept at 100%.",
@@ -93,6 +115,8 @@ enum PKParameterLibrary {
             matchTerms: ["bpc-157", "bpc 157", "body-protective compound 157", "body protective compound 157", "pl 14736", "pl-14736", "bepecin"],
             halfLifeDays: 20.0 / 1_440.0,
             availabilityMultiplier: 1.0,
+            absorptionHalfLifeDaysSubQ: 0.02,
+            absorptionHalfLifeDaysIM: 0.015,
             route: "Subcutaneous estimate",
             parameterSummary: "Preclinical half-life estimate 20 minutes; relative dose scale.",
             modelNote: "No validated human subcutaneous PK or absolute subcutaneous bioavailability was found. This curve uses a midpoint-style preclinical short half-life estimate to visualize rapid peptide washout only; it is not a serum prediction, dosing recommendation, or safety statement.",
@@ -109,6 +133,8 @@ enum PKParameterLibrary {
             matchTerms: ["testosterone cypionate", "depo-testosterone", "test cyp", "tcyp"],
             halfLifeDays: 5.0,
             availabilityMultiplier: 1.0,
+            absorptionHalfLifeDaysSubQ: 4.0,
+            absorptionHalfLifeDaysIM: 2.5,
             route: "Intramuscular or subcutaneous",
             parameterSummary: "Effective curve half-life 5 days; relative dose scale.",
             modelNote: "This is an effective visualization parameter derived from observed serum timing after 200 mg IM testosterone cypionate, not a measured terminal half-life or serum testosterone prediction.",
@@ -150,7 +176,7 @@ enum PKModeler {
         referenceDate: Date = Date(),
         lookbackDays: Int = 28,
         forecastDays: Int = 28,
-        stepHours: Int = 12,
+        stepHours: Int = 6,
         includeFutureDoses: Bool = true
     ) -> [PKMedicationProfile] {
         store.medications
@@ -183,7 +209,7 @@ enum PKModeler {
         referenceDate: Date = Date(),
         lookbackDays: Int = 28,
         forecastDays: Int = 28,
-        stepHours: Int = 12,
+        stepHours: Int = 6,
         includeFutureDoses: Bool = true
     ) -> PKMedicationProfile? {
         guard let parameters = PKParameterLibrary.parameterSet(for: medication) else {
@@ -201,19 +227,47 @@ enum PKModeler {
 
         guard !events.isEmpty else { return nil }
 
+        let eliminationRate = log(2) / parameters.halfLifeDays
+        let absorptionHalfLife = parameters.absorptionHalfLifeDays(forRoute: medication.instructions)
+        var absorptionRate = log(2) / max(0.0005, absorptionHalfLife)
+        // Keep ka and ke apart so the Bateman term never divides by zero.
+        if abs(absorptionRate - eliminationRate) < 1e-6 {
+            absorptionRate = eliminationRate * 1.01
+        }
+        // Time-to-peak for a single dose; used to anchor samples on the peak.
+        let tmaxDays = log(absorptionRate / eliminationRate) / (absorptionRate - eliminationRate)
+
         let safeStepHours = max(1, stepHours)
-        var points: [PKPoint] = []
+        var sampleDates: Set<Date> = []
         var cursor = windowStart
         while cursor <= windowEnd {
-            points.append(PKPoint(date: cursor, value: exposure(at: cursor, events: events, parameters: parameters)))
+            sampleDates.insert(cursor)
             guard let next = Calendar.doseTrackCalendar.date(byAdding: .hour, value: safeStepHours, to: cursor) else { break }
             cursor = next
+        }
+        // Anchor a sample at each dose and at its individual peak so the
+        // drawn curve and the peak/trough stats land on the true extrema
+        // instead of wherever the fixed grid happens to fall.
+        for event in events {
+            for offset in [0.0, max(0, tmaxDays)] {
+                let date = event.date.addingTimeInterval(offset * 86_400)
+                if date >= windowStart && date <= windowEnd {
+                    sampleDates.insert(date)
+                }
+            }
+        }
+
+        let points = sampleDates.sorted().map { date in
+            PKPoint(
+                date: date,
+                value: exposure(at: date, events: events, eliminationRate: eliminationRate, absorptionRate: absorptionRate, availability: parameters.availabilityMultiplier)
+            )
         }
 
         guard !points.isEmpty else { return nil }
 
         let values = points.map(\.value)
-        let currentValue = exposure(at: referenceDate, events: events, parameters: parameters)
+        let currentValue = exposure(at: referenceDate, events: events, eliminationRate: eliminationRate, absorptionRate: absorptionRate, availability: parameters.availabilityMultiplier)
 
         return PKMedicationProfile(
             medication: medication,
@@ -225,7 +279,8 @@ enum PKModeler {
             troughValue: values.min() ?? currentValue,
             averageValue: values.reduce(0, +) / Double(values.count),
             windowStart: windowStart,
-            windowEnd: windowEnd
+            windowEnd: windowEnd,
+            absorptionHalfLifeDays: absorptionHalfLife
         )
     }
 
@@ -276,14 +331,21 @@ enum PKModeler {
         return (events + manualEvents).sorted { $0.date < $1.date }
     }
 
-    private static func exposure(at date: Date, events: [PKDoseEvent], parameters: PKParameterSet) -> Double {
-        let eliminationRate = log(2) / parameters.halfLifeDays
-
-        return events.reduce(0) { total, event in
+    /// One-compartment model with first-order absorption (Bateman function),
+    /// summed over every dose still on board. Absorption smooths the instant
+    /// spike of a bolus and makes route (SubQ vs IM) matter.
+    private static func exposure(
+        at date: Date,
+        events: [PKDoseEvent],
+        eliminationRate ke: Double,
+        absorptionRate ka: Double,
+        availability: Double
+    ) -> Double {
+        events.reduce(0) { total, event in
             guard event.date <= date else { return total }
-            let elapsedDays = date.timeIntervalSince(event.date) / 86_400
-            let remaining = event.amount * parameters.availabilityMultiplier * exp(-eliminationRate * elapsedDays)
-            return total + max(0, remaining)
+            let t = date.timeIntervalSince(event.date) / 86_400
+            let bateman = (ka / (ka - ke)) * (exp(-ke * t) - exp(-ka * t))
+            return total + max(0, event.amount * availability * bateman)
         }
     }
 
