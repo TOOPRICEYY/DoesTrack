@@ -239,8 +239,16 @@ struct PauseMedicationSheet: View {
 }
 
 struct LogDoseSheet: View {
+    /// One flow for both cases: a scheduled dose being logged, or an
+    /// unscheduled dose added from Home/Calendar for a chosen day.
+    enum Target {
+        case scheduled(ScheduledDose)
+        case unscheduled(date: Date)
+    }
+
     @EnvironmentObject private var store: DoseStore
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedMedicationID: UUID?
     @State private var amountText: String
     @State private var unit: String
     @State private var method: String
@@ -258,17 +266,53 @@ struct LogDoseSheet: View {
     /// constituted volume in mL. mL entry needs a batch concentration.
     @State private var entersVolume = false
 
-    var scheduledDose: ScheduledDose
+    private let target: Target
 
     private let siteOptions = DoseStore.defaultInjectionSites
     private let reactionOptions = ["None", "Redness", "Swelling", "Bruising", "Lump/Nodule", "Itching"]
 
     init(scheduledDose: ScheduledDose) {
-        self.scheduledDose = scheduledDose
+        self.target = .scheduled(scheduledDose)
+        _selectedMedicationID = State(initialValue: scheduledDose.medication.id)
         _amountText = State(initialValue: DoseLoggingFormatter.amount(scheduledDose.schedule.amount))
         _unit = State(initialValue: scheduledDose.medication.unit.uppercased())
         _method = State(initialValue: scheduledDose.medication.instructions.localizedCaseInsensitiveContains("IM") ? "IM" : "SubQ")
         _loggedTime = State(initialValue: Date())
+    }
+
+    init(unscheduledOn date: Date) {
+        self.target = .unscheduled(date: date)
+        _selectedMedicationID = State(initialValue: nil)
+        _amountText = State(initialValue: "1")
+        _unit = State(initialValue: "MG")
+        _method = State(initialValue: "SubQ")
+        _loggedTime = State(initialValue: Self.defaultLoggedTime(for: date))
+    }
+
+    private var scheduledDose: ScheduledDose? {
+        if case .scheduled(let dose) = target { return dose }
+        return nil
+    }
+
+    private var isScheduled: Bool {
+        scheduledDose != nil
+    }
+
+    private var targetDate: Date {
+        switch target {
+        case .scheduled(let dose): return dose.scheduledAt
+        case .unscheduled(let date): return date
+        }
+    }
+
+    private var medication: Medication? {
+        if let scheduledDose { return scheduledDose.medication }
+        return selectedMedicationID.flatMap { store.medication(for: $0) }
+    }
+
+    private var selectableMedications: [Medication] {
+        let active = store.medications.filter(\.isActive)
+        return active.isEmpty ? store.medications : active
     }
 
     var body: some View {
@@ -280,15 +324,7 @@ struct LogDoseSheet: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, 10)
 
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Log New Dose")
-                        .font(.largeTitle.bold())
-                    Text(scheduledDose.medication.name)
-                        .font(.title.bold())
-                    Text("\(frequencyText) · \(method)")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                }
+                header
 
                 doseCard
                 if !availableBatches.isEmpty {
@@ -314,19 +350,23 @@ struct LogDoseSheet: View {
                 .buttonStyle(.borderedProminent)
                 .tint(doseLoggingBlue)
                 .controlSize(.large)
+                .disabled(medication == nil || resolvedActiveAmount == nil)
                 .accessibilityLabel("Log Dose")
 
                 HStack {
-                    Button("Skip this dose") {
-                        showsSkipReasons = true
-                    }
-                    .frame(maxWidth: .infinity)
+                    if isScheduled {
+                        Button("Skip this dose") {
+                            showsSkipReasons = true
+                        }
+                        .frame(maxWidth: .infinity)
 
-                    Divider().frame(height: 34)
+                        Divider().frame(height: 34)
+                    }
 
                     Button("Wasted dose") {
                         showsWastedDose = true
                     }
+                    .disabled(medication == nil)
                     .frame(maxWidth: .infinity)
                 }
                 .font(.headline)
@@ -347,25 +387,89 @@ struct LogDoseSheet: View {
             if let suggested = store.suggestedInjectionSite(from: siteOptions) {
                 injectionSite = suggested
             }
-            if selectedBatchID == nil {
-                selectedBatchID = store.defaultBatch(for: scheduledDose.medication.id)?.id
+            if selectedMedicationID == nil {
+                selectedMedicationID = selectableMedications.first?.id
+                if let medication { seed(from: medication) }
+            } else if selectedBatchID == nil, let medication {
+                selectedBatchID = store.defaultBatch(for: medication.id)?.id
             }
+        }
+        .onChange(of: selectedMedicationID) { _, newValue in
+            guard !isScheduled,
+                  let newValue,
+                  let medication = store.medication(for: newValue)
+            else { return }
+            seed(from: medication)
         }
         .sheet(isPresented: $showsWastedDose) {
-            WastedDoseSheet(
-                medication: scheduledDose.medication,
-                standardAmount: resolvedActiveAmount ?? scheduledDose.schedule.amount,
-                unit: scheduledDose.medication.unit.uppercased()
-            ) { amount in
-                recordWastedDose(amount: amount)
+            if let medication {
+                WastedDoseSheet(
+                    medication: medication,
+                    standardAmount: resolvedActiveAmount ?? medication.schedules.first?.amount ?? 1,
+                    unit: medication.unit.uppercased()
+                ) { amount in
+                    recordWastedDose(amount: amount)
+                }
             }
         }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                Text("Log New Dose")
+                    .font(.largeTitle.bold())
+                Spacer()
+                Button("Cancel") {
+                    dismiss()
+                }
+                .font(.headline)
+                .foregroundStyle(.secondary)
+                .accessibilityLabel("Close log dose")
+            }
+
+            if isScheduled {
+                Text(medication?.name ?? "")
+                    .font(.title.bold())
+            } else {
+                Menu {
+                    ForEach(selectableMedications) { candidate in
+                        Button(candidate.name) {
+                            selectedMedicationID = candidate.id
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text(medication?.name ?? "Choose medication")
+                            .font(.title.bold())
+                            .multilineTextAlignment(.leading)
+                        Image(systemName: "chevron.down")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .foregroundStyle(.primary)
+                }
+                .accessibilityLabel("Choose medication")
+            }
+
+            Text(subtitleText)
+                .font(.title3)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var subtitleText: String {
+        if let scheduledDose {
+            return "\(scheduledDose.schedule.frequencyLabel) · \(method)"
+        }
+        return "Unscheduled · \(targetDate.formatted(date: .abbreviated, time: .omitted)) · \(method)"
     }
 
     // MARK: Batch draw
 
     private var availableBatches: [MedicationBatch] {
-        store.batches(for: scheduledDose.medication.id)
+        guard let medication else { return [] }
+        return store.batches(for: medication.id)
     }
 
     private var selectedBatch: MedicationBatch? {
@@ -394,7 +498,7 @@ struct LogDoseSheet: View {
     }
 
     private var medicationUnitLabel: String {
-        let unit = scheduledDose.medication.unit
+        let unit = medication?.unit ?? ""
         return unit.isEmpty ? "units" : unit
     }
 
@@ -478,22 +582,10 @@ struct LogDoseSheet: View {
                     .background(doseLoggingBlue.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .accessibilityLabel("Dose amount")
 
-                Menu {
-                    ForEach(["MG", "MCG", "IU", "ML", "UNITS"], id: \.self) { option in
-                        Button(option) { unit = option }
-                    }
-                } label: {
-                    HStack(spacing: 7) {
-                        Text(unit)
-                            .font(.title2.bold())
-                            .foregroundStyle(.primary)
-                        Image(systemName: "chevron.down")
-                            .foregroundStyle(.secondary)
-                    }
+                Text(entersVolume ? "ML" : unit)
+                    .font(.title2.bold())
                     .frame(width: 104, height: 56)
-                }
             }
-
         }
         .doseLoggingCard()
     }
@@ -664,139 +756,85 @@ struct LogDoseSheet: View {
         }
     }
 
-    private var frequencyText: String {
-        scheduledDose.schedule.frequencyLabel
+    // MARK: Saving
+
+    private func seed(from medication: Medication) {
+        amountText = DoseLoggingFormatter.amount(medication.schedules.first?.amount ?? Double(medication.dose) ?? 1)
+        unit = medication.unit.uppercased()
+        method = medication.instructions.localizedCaseInsensitiveContains("IM") ? "IM" : "SubQ"
+        selectedBatchID = store.defaultBatch(for: medication.id)?.id
+        entersVolume = false
+    }
+
+    /// Combines the target day with the (possibly edited) log time.
+    private var effectiveLoggedAt: Date {
+        let components = Calendar.doseTrackCalendar.dateComponents([.hour, .minute], from: loggedTime)
+        return Calendar.doseTrackCalendar.dateBySettingTime(
+            hour: components.hour ?? 9,
+            minute: components.minute ?? 0,
+            on: targetDate
+        ) ?? loggedTime
     }
 
     private func saveDose(status: DoseLogStatus, skipReason: String? = nil) {
-        let amount = resolvedActiveAmount ?? scheduledDose.schedule.amount
+        guard let medication else { return }
 
-        store.record(
-            scheduledDose,
-            status: status,
-            amount: amount,
-            takenAt: loggedTime,
-            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
-            method: method,
-            site: injectionSite,
-            painLevel: showsAdvanced ? Int(painLevel) : nil,
-            siteReaction: showsAdvanced && siteReaction != "None" ? siteReaction : nil,
-            skipReason: skipReason,
-            batchID: selectedBatchID,
-            volumeMl: resolvedVolumeMl
-        )
+        switch target {
+        case .scheduled(let dose):
+            let amount = resolvedActiveAmount ?? dose.schedule.amount
+            store.record(
+                dose,
+                status: status,
+                amount: amount,
+                takenAt: loggedTime,
+                notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
+                method: method,
+                site: injectionSite,
+                painLevel: showsAdvanced ? Int(painLevel) : nil,
+                siteReaction: showsAdvanced && siteReaction != "None" ? siteReaction : nil,
+                skipReason: skipReason,
+                batchID: selectedBatchID,
+                volumeMl: resolvedVolumeMl
+            )
+        case .unscheduled:
+            guard status == .taken, let amount = resolvedActiveAmount else { return }
+            store.recordManualDose(
+                medicationID: medication.id,
+                amount: amount,
+                notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
+                scheduledAt: effectiveLoggedAt,
+                takenAt: effectiveLoggedAt,
+                method: method,
+                site: injectionSite,
+                painLevel: showsAdvanced ? Int(painLevel) : nil,
+                siteReaction: showsAdvanced && siteReaction != "None" ? siteReaction : nil,
+                batchID: selectedBatchID,
+                volumeMl: resolvedVolumeMl
+            )
+        }
         dismiss()
     }
 
     private func recordWastedDose(amount: Double) {
+        guard let medication else { return }
+
         let noteParts = [
-            "Wasted dose of \(scheduledDose.medication.name)",
+            "Wasted dose of \(medication.name)",
             notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes.trimmingCharacters(in: .whitespacesAndNewlines)
         ].compactMap { $0 }
 
         store.recordWastedDose(
-            medicationID: scheduledDose.medication.id,
+            medicationID: medication.id,
             amount: amount,
-            occurredAt: Date(),
+            occurredAt: effectiveLoggedAt,
             notes: noteParts.joined(separator: " · "),
             batchID: selectedBatchID,
             volumeMl: batchConcentration.map { $0 > 0 ? amount / $0 : 0 }
         )
         dismiss()
     }
-}
 
-struct ManualDoseSheet: View {
-    @EnvironmentObject private var store: DoseStore
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var selectedMedicationID = UUID()
-    @State private var amountText = "1"
-    @State private var loggedAt: Date
-    @State private var notes = ""
-
-    var scheduledAt: Date
-
-    init(scheduledAt: Date = Date()) {
-        self.scheduledAt = scheduledAt
-        _loggedAt = State(initialValue: Self.defaultLoggedAt(for: scheduledAt))
-    }
-
-    private var selectableMedications: [Medication] {
-        let active = store.medications.filter(\.isActive)
-        return active.isEmpty ? store.medications : active
-    }
-
-    private var selectedMedication: Medication? {
-        store.medications.first { $0.id == selectedMedicationID }
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Dose") {
-                    Picker("Medication", selection: $selectedMedicationID) {
-                        ForEach(selectableMedications) { medication in
-                            Text(medication.name).tag(medication.id)
-                        }
-                    }
-                    .accessibilityLabel("Medication")
-
-                    TextField("Amount", text: $amountText)
-                        .keyboardType(.decimalPad)
-                        .accessibilityLabel("Amount")
-
-                    if let selectedMedication {
-                        LabeledContent("Unit", value: selectedMedication.unit.uppercased())
-                    }
-
-                    DatePicker("Logged at", selection: $loggedAt, displayedComponents: [.date, .hourAndMinute])
-                }
-
-                Section("Notes") {
-                    TextField("Notes", text: $notes, axis: .vertical)
-                        .lineLimit(2...5)
-                }
-            }
-            .navigationTitle("Add Dose")
-            .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                if selectedMedication == nil, let first = selectableMedications.first {
-                    selectedMedicationID = first.id
-                    amountText = DoseLoggingFormatter.amount(first.schedules.first?.amount ?? Double(first.dose) ?? 1)
-                }
-            }
-            .onChange(of: selectedMedicationID) { _, newValue in
-                guard let medication = store.medications.first(where: { $0.id == newValue }) else { return }
-                amountText = DoseLoggingFormatter.amount(medication.schedules.first?.amount ?? Double(medication.dose) ?? 1)
-            }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        store.recordManualDose(
-                            medicationID: selectedMedicationID,
-                            amount: parsedAmount,
-                            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
-                            scheduledAt: loggedAt,
-                            takenAt: loggedAt
-                        )
-                        dismiss()
-                    }
-                    .disabled(selectedMedication == nil || parsedAmount <= 0)
-                }
-            }
-        }
-    }
-
-    private var parsedAmount: Double {
-        Double(amountText.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
-    }
-
-    private static func defaultLoggedAt(for date: Date) -> Date {
+    private static func defaultLoggedTime(for date: Date) -> Date {
         let calendar = Calendar.doseTrackCalendar
         if calendar.isDateInToday(date) { return Date() }
         return calendar.dateBySettingTime(hour: 9, minute: 0, on: date) ?? date

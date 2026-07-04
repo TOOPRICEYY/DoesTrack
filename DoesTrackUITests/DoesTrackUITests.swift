@@ -119,8 +119,8 @@ final class DoesTrackUITests: XCTestCase {
         app.buttons["Open calendar"].waitAndTap()
         XCTAssertTrue(app.staticTexts["Upcoming Shots"].waitForExistence(timeout: 4))
         app.buttons["Add Dose"].waitAndTap()
-        XCTAssertTrue(app.navigationBars["Add Dose"].waitForExistence(timeout: 4))
-        app.buttons["Cancel"].waitAndTap()
+        XCTAssertTrue(app.staticTexts["Log New Dose"].waitForExistence(timeout: 4))
+        app.buttons["Close log dose"].waitAndTap()
         app.buttons["Close calendar"].waitAndTap()
 
         app.buttons["Open notifications"].waitAndTap()

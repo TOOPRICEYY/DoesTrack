@@ -39,7 +39,7 @@ struct CalendarShotsView: View {
                     .environmentObject(store)
             }
             .sheet(isPresented: $showsManualDose) {
-                ManualDoseSheet(scheduledAt: selectedDate)
+                LogDoseSheet(unscheduledOn: selectedDate)
                     .environmentObject(store)
             }
             .sheet(item: $loggingDose) { dose in
