@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate DoseTrack app icons using only the Python standard library."""
+"""Generate DoesTrack app icons using only the Python standard library."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ICON_DIR = ROOT / "DoseTrack" / "Supporting" / "Assets.xcassets" / "AppIcon.appiconset"
+ICON_DIR = ROOT / "DoesTrack" / "Supporting" / "Assets.xcassets" / "AppIcon.appiconset"
 
 SIZES = {
     "Icon-20@1x.png": 20,

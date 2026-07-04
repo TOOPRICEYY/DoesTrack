@@ -12,6 +12,7 @@ Home tab states.
 
 - `01_IMG_2618_home_empty_start.PNG` - Empty/first-start home state with suggested protocols.
 - `02_IMG_2619_home_configured_stack.PNG` - Home with active protocol stack and compliance cards.
+- `03_IMG_2649_home_scheduled_doses_due_today.PNG` - Home with scheduled dose cards for active protocols.
 
 ### 02_main_tabs
 
@@ -57,6 +58,7 @@ Schedule views.
 
 - `01_IMG_2638_calendar_month_with_due_shots.PNG` - Month calendar with selected day and upcoming shot preview.
 - `02_IMG_2639_upcoming_shots_list.PNG` - Upcoming shots list.
+- `03_IMG_2648_calendar_selected_day_add_dose.PNG` - Calendar selected day with scheduled doses and add dose action.
 
 ### 07_notifications
 
@@ -72,3 +74,11 @@ Settings list, split by scroll position.
 
 - `01_IMG_2643_settings_top.PNG` - Settings top: account, notifications, health, preferences, time zone.
 - `02_IMG_2644_settings_bottom.PNG` - Settings bottom: data/privacy, support, app id/version.
+
+### 09_dose_actions_and_logging
+
+Dose actions and dose logging overlays.
+
+- `01_IMG_2650_medication_pause_action_sheet.PNG` - Medication action sheet for pausing reminders temporarily.
+- `02_IMG_2651_log_new_dose_basic_sheet.PNG` - Log new dose bottom sheet with dose, method, site, and notes.
+- `03_IMG_2652_log_new_dose_advanced_sheet.PNG` - Expanded log new dose sheet with advanced fields like pain and site reaction.

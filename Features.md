@@ -1,0 +1,16 @@
+- [ ] New feature: Tracker->Medications list, clicking on any given medications should display the time series of all doses taken over time with a graph display option with modes: estimated pks, dose quantity bucketed in different time peroids depending on the time scale of the graph which can be selected to be, daily, weekly, monthly and scrolled horizontally
+- [ ] Refinement: Pulse->pk model
+	- [ ] Option for toggling whether future doses should be incorporated in prediction 
+	- [ ] Horizontal scroll and zoom
+- [ ] New feature: Batches
+	- [ ] Batches which store information like supplier, concentration, purchase date, quantity and other notes for a medication can be created and attached to protocols. Each dose stores the batch it was drawn from. Batches are displayed in there own block below medications within tracker tab where all detials can be modified including current quanity. Every dose modifies remaining quantity. When you take a dose their are options for logging via the constituded quanity(ex ml) or the active quanity(ex mg), the concentration is also called out for awareness. This replaces inventory functionality.
+- [ ] Fix: Logging unscheduled dose in calendar view uses the same flow as a scheduled dose
+- [ ] Refinement: Able to log unscheduled dose in home tab
+- [ ] Refinement: Remove all supurfious replication artifacts
+	- [ ] Profile Tab
+		- [ ] Subsciption info
+		- [ ] What's new, hub, feedback,rate
+- [ ] Auto git sync
+	- [ ] Git auto sync is configurable and there will be a warning displayed if over a week has gone without syncing which is dismissable
+- [ ] Refinement: Ability to edit doses already logged on homepage, tracker tab and calendar tab
+- [ ] New Feature: When a unscheduled dose is logged and the dosing schedule type is interval based(ex every n days not day of the week) pose an option to shift future doses where the forthcoming scheduled doses are shifted to retain interval
