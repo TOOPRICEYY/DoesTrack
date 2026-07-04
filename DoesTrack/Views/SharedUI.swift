@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ModelCard<Content: View>: View {
-    var background: Color = .white
+    var background: Color = Color.appSurface
     var stroke: Color = .primary.opacity(0.10)
     @ViewBuilder var content: Content
 
