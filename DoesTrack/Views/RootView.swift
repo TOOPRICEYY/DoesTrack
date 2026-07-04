@@ -34,7 +34,7 @@ struct RootView: View {
             } label: {
                 Image(systemName: "square.grid.2x2.fill.badge.plus")
                     .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(.primary)
                     .frame(width: 76, height: 76)
                     .background(Color.blue.opacity(0.28), in: Circle())
                     .overlay {

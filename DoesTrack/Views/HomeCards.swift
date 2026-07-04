@@ -486,7 +486,7 @@ struct CustomizeHomeView: View {
                             onColor: { hex in update(config.card) { $0.colorHex = hex } },
                             onRemove: { remove(config.card) }
                         )
-                        .listRowBackground(Color.white)
+                        .listRowBackground(Color.appSurface)
                     }
                     .onMove(perform: move)
                 } header: {
@@ -516,7 +516,7 @@ struct CustomizeHomeView: View {
                             }
                             .accessibilityLabel("Pin \(card.title)")
                         }
-                        .listRowBackground(Color.white)
+                        .listRowBackground(Color.appSurface)
                     }
                 }
             }

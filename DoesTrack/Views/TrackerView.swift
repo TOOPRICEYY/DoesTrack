@@ -167,7 +167,7 @@ struct TrackerMedicationRow: View {
             }
         }
         .padding()
-        .background(.white, in: RoundedRectangle(cornerRadius: 16))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 16))
         .overlay(alignment: .leading) {
             Rectangle()
                 .fill(Color(hex: medication.colorHex))

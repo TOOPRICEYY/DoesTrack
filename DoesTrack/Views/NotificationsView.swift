@@ -20,7 +20,7 @@ struct NotificationsCenterView: View {
                         Image(systemName: "chevron.left")
                             .font(.title2.bold())
                             .frame(width: 52, height: 52)
-                            .background(.white, in: Circle())
+                            .background(Color.appSurface, in: Circle())
                     }
                     .foregroundStyle(.primary)
                     .accessibilityLabel("Close notifications")
@@ -72,7 +72,7 @@ struct NotificationsCenterView: View {
                                             .foregroundStyle(.secondary)
                                             .padding(.horizontal, 11)
                                             .padding(.vertical, 6)
-                                            .background(.white, in: Circle())
+                                            .background(Color.appSurface, in: Circle())
                                         Spacer()
                                     }
 
@@ -196,7 +196,7 @@ struct NotificationTodayMedicationCard: View {
                     }
             }
             .padding()
-            .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .stroke(Color.appBlue.opacity(0.32), lineWidth: 1.5)
@@ -276,7 +276,7 @@ struct NotificationDoseRow: View {
             .controlSize(.small)
         }
         .padding()
-        .background(.white, in: RoundedRectangle(cornerRadius: 18))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 18))
         .overlay {
             RoundedRectangle(cornerRadius: 18).stroke(statusColor.opacity(0.35))
         }
@@ -336,7 +336,7 @@ struct ReminderCard: View {
                     .background(.green.opacity(0.12), in: Capsule())
             }
             .padding()
-            .background(.white, in: RoundedRectangle(cornerRadius: 18))
+            .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 18))
         }
         .sheet(isPresented: $showsCheckIn) {
             WeeklyCheckInView()
@@ -473,10 +473,10 @@ struct WeeklyCheckInView: View {
             }
         }
         .padding(6)
-        .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(.black.opacity(0.10))
+                .stroke(.primary.opacity(0.10))
         }
     }
 
@@ -492,10 +492,10 @@ struct WeeklyCheckInView: View {
             }
         }
         .padding()
-        .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(.black.opacity(0.10))
+                .stroke(.primary.opacity(0.10))
         }
     }
 
@@ -512,10 +512,10 @@ struct WeeklyCheckInView: View {
                 .accessibilityLabel("Current weight")
         }
         .padding(22)
-        .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(.black.opacity(0.10))
+                .stroke(.primary.opacity(0.10))
         }
     }
 
@@ -527,10 +527,10 @@ struct WeeklyCheckInView: View {
                 .lineLimit(3...6)
         }
         .padding()
-        .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(.black.opacity(0.10))
+                .stroke(.primary.opacity(0.10))
         }
     }
 

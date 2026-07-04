@@ -29,7 +29,7 @@ struct ProtocolStacksView: View {
                                 Image(systemName: "chevron.left")
                                     .font(.title2.bold())
                                     .frame(width: 52, height: 52)
-                                    .background(.white, in: Circle())
+                                    .background(Color.appSurface, in: Circle())
                             }
                             .foregroundStyle(.primary)
                             .accessibilityLabel("Close optimization stacks")
@@ -84,7 +84,7 @@ struct ProtocolStacksView: View {
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(.primary)
                         .frame(width: 74, height: 74)
                         .background(Color.appBlue, in: Circle())
                         .shadow(radius: 12, y: 6)

@@ -28,7 +28,7 @@ struct PulseView: View {
                             Image(systemName: "plus.bubble")
                                 .font(.title3.weight(.semibold))
                                 .frame(width: 44, height: 44)
-                                .background(.white, in: Circle())
+                                .background(Color.appSurface, in: Circle())
                         }
                         .foregroundStyle(.primary)
                         .disabled(store.chatMessages.isEmpty)
@@ -40,7 +40,7 @@ struct PulseView: View {
                             Image(systemName: "info.circle")
                                 .font(.title3.weight(.semibold))
                                 .frame(width: 44, height: 44)
-                                .background(.white, in: Circle())
+                                .background(Color.appSurface, in: Circle())
                         }
                         .foregroundStyle(.primary)
                         .accessibilityLabel("About Pulse chat")
@@ -250,9 +250,9 @@ struct MiniInsight: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.white, in: RoundedRectangle(cornerRadius: 12))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 12))
         .overlay {
-            RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.10))
+            RoundedRectangle(cornerRadius: 12).stroke(.primary.opacity(0.10))
         }
     }
 }
@@ -282,6 +282,6 @@ struct QuestionRow: View {
                 .foregroundStyle(.secondary)
         }
         .padding()
-        .background(.white, in: RoundedRectangle(cornerRadius: 12))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 12))
     }
 }

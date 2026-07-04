@@ -109,11 +109,11 @@ struct PKModelView: View {
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                         .frame(minWidth: 150, alignment: .leading)
-                        .background(isSelected ? pkBlue : .white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .background(isSelected ? pkBlue : Color.appSurface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .foregroundStyle(isSelected ? .white : .primary)
                         .overlay {
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .stroke(isSelected ? pkBlue : .black.opacity(0.10))
+                                .stroke(isSelected ? pkBlue : .primary.opacity(0.10))
                         }
                     }
                     .buttonStyle(.plain)
@@ -352,10 +352,10 @@ private struct PKCard<Content: View>: View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
-            .background(.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(.black.opacity(0.08))
+                    .stroke(.primary.opacity(0.08))
             }
     }
 }
@@ -376,10 +376,10 @@ private struct PKMetricCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(.black.opacity(0.08))
+                .stroke(.primary.opacity(0.08))
         }
     }
 }

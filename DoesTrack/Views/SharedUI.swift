@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ModelCard<Content: View>: View {
     var background: Color = .white
-    var stroke: Color = .black.opacity(0.10)
+    var stroke: Color = .primary.opacity(0.10)
     @ViewBuilder var content: Content
 
     var body: some View {
@@ -50,9 +50,9 @@ struct StackSuggestionRow: View {
                     .foregroundStyle(.secondary)
             }
             .padding()
-            .background(.white, in: RoundedRectangle(cornerRadius: 18))
+            .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 18))
             .overlay {
-                RoundedRectangle(cornerRadius: 18).stroke(.black.opacity(0.10))
+                RoundedRectangle(cornerRadius: 18).stroke(.primary.opacity(0.10))
             }
         }
         .buttonStyle(.plain)
@@ -64,9 +64,9 @@ struct DividerWithText: View {
 
     var body: some View {
         HStack {
-            Rectangle().fill(.black.opacity(0.12)).frame(height: 1)
+            Rectangle().fill(.primary.opacity(0.12)).frame(height: 1)
             Text(text).foregroundStyle(.secondary)
-            Rectangle().fill(.black.opacity(0.12)).frame(height: 1)
+            Rectangle().fill(.primary.opacity(0.12)).frame(height: 1)
         }
     }
 }
@@ -80,7 +80,7 @@ struct SectionHeader: View {
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(.secondary)
                 .tracking(3)
-            Rectangle().fill(.black.opacity(0.12)).frame(height: 1)
+            Rectangle().fill(.primary.opacity(0.12)).frame(height: 1)
         }
     }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 extension Color {
     init(hex: String) {
@@ -45,6 +46,16 @@ struct EmptyStateView: View {
 extension Color {
     /// Single source of truth for the replica palette. The per-file
     /// `private let` aliases below each view file point here.
-    static let appBackground = Color(red: 0.93, green: 0.95, blue: 0.99)
+    static let appBackground = Color(UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.07, green: 0.09, blue: 0.13, alpha: 1)
+            : UIColor(red: 0.93, green: 0.95, blue: 0.99, alpha: 1)
+    })
+    /// Card/surface color: white in light mode, dark slate in dark mode.
+    static let appSurface = Color(UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.14, green: 0.16, blue: 0.22, alpha: 1)
+            : .white
+    })
     static let appBlue = Color(red: 0.05, green: 0.50, blue: 1.0)
 }

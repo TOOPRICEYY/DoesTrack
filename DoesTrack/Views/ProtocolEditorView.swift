@@ -146,9 +146,9 @@ struct ProtocolEditorView: View {
                                     .foregroundStyle(.green)
                             }
                             .padding()
-                            .background(.white, in: RoundedRectangle(cornerRadius: 14))
+                            .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 14))
                             .overlay {
-                                RoundedRectangle(cornerRadius: 14).stroke(.black.opacity(0.08))
+                                RoundedRectangle(cornerRadius: 14).stroke(.primary.opacity(0.08))
                             }
                         }
                         .buttonStyle(.plain)
@@ -811,7 +811,7 @@ struct WeekdayToggleSelector: View {
                         .background(isSelected ? Color.appBlue : Color(.systemGray5), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .stroke(isSelected ? Color.appBlue.opacity(0.4) : Color.black.opacity(0.08), lineWidth: 1)
+                                .stroke(isSelected ? Color.appBlue.opacity(0.4) : Color.primary.opacity(0.08), lineWidth: 1)
                         }
                 }
                 .buttonStyle(.plain)

@@ -447,10 +447,10 @@ private struct PulseCard<Content: View>: View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
-            .background(.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(.black.opacity(0.08))
+                    .stroke(.primary.opacity(0.08))
             }
     }
 }

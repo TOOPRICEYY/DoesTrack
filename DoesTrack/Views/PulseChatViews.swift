@@ -51,7 +51,7 @@ private struct ChatBubble: View {
             )
             .overlay {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(message.role == .user ? Color.appBlue.opacity(0.30) : .black.opacity(0.08))
+                    .stroke(message.role == .user ? Color.appBlue.opacity(0.30) : .primary.opacity(0.08))
             }
 
             if message.role == .assistant {
@@ -257,10 +257,10 @@ struct FortnightlyReviewView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(.black.opacity(0.08))
+                .stroke(.primary.opacity(0.08))
         }
     }
 }

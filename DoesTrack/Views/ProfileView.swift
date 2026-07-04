@@ -227,9 +227,9 @@ struct SettingsGroup<Content: View>: View {
             content
         }
         .padding(.vertical, 6)
-        .background(.white, in: RoundedRectangle(cornerRadius: 18))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 18))
         .overlay {
-            RoundedRectangle(cornerRadius: 18).stroke(.black.opacity(0.10))
+            RoundedRectangle(cornerRadius: 18).stroke(.primary.opacity(0.10))
         }
     }
 }
