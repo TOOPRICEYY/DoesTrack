@@ -55,7 +55,7 @@ extension DoseStore {
     // MARK: Hydration
 
     static let hydrationGoalKey = "doseTrackHydrationGoalOunces"
-    static let hydrationSipOunces = 8.0
+    nonisolated static let hydrationSipOunces = 8.0
 
     var hydrationGoalOunces: Double {
         let stored = UserDefaults.standard.double(forKey: Self.hydrationGoalKey)
@@ -226,7 +226,11 @@ extension DoseStore {
     /// Applies a remaining-quantity delta (negative = draw) in active units.
     func adjustBatch(id: UUID, delta: Double) {
         guard let index = batches.firstIndex(where: { $0.id == id }) else { return }
-        batches[index].remainingQuantity = max(0, batches[index].remainingQuantity + delta)
+        let current = batches[index].remainingQuantity
+        // Refunds never push a batch past what it held (draws clamp at 0, so
+        // refunding a clamped draw in full would otherwise invent stock).
+        let ceiling = max(batches[index].totalQuantity, current)
+        batches[index].remainingQuantity = min(ceiling, max(0, current + delta))
         batches[index].updatedAt = Date()
     }
 

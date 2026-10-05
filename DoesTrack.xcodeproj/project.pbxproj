@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0043971071212DEF54325862 /* NotificationPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = A51216960A45B657719F80C0 /* NotificationPreferences.swift */; };
 		014CBBF9228D50819E647998 /* DoseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92C3F94EBD8D00A0441187B6 /* DoseStore.swift */; };
 		0919BF63201C820BDA9C06E9 /* DoseStore+Wellness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71E63C46CD864B15945FE9A6 /* DoseStore+Wellness.swift */; };
 		0A8A82FFB90248B0845A0BCC /* SyncView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369B5501D6194542E7442991 /* SyncView.swift */; };
@@ -14,6 +15,7 @@
 		1844D6AFA3D25D69C5EAE6FC /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 460769FBEC8B4BD070AB688C /* NotificationScheduler.swift */; };
 		1A93D91691F2FE415FBF9ECC /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7FEEF460822A8B96B7EEB2A /* HealthKitService.swift */; };
 		26B66C1AC784C78CEEB90FC3 /* DoesTrackUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F9AD087549110BCE88105A3 /* DoesTrackUITests.swift */; };
+		30C41626271090A57FF20E2C /* NotificationResponder.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD910E8225F362B55542BD7D /* NotificationResponder.swift */; };
 		362003E57F6961A8620A5A85 /* SettingsSupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4FDDE3B16D148360EF69386 /* SettingsSupportViews.swift */; };
 		3CA3F7EF295E4EBCA1E1EF68 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F2FA1DBCDCD91B5E641D11 /* ProfileView.swift */; };
 		5DFB5D1C62E870304F0E8F44 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C9893B5CF4E3DA6FCB3C568 /* HomeView.swift */; };
@@ -83,6 +85,7 @@
 		8261868164F505BC52FE212B /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		92C3F94EBD8D00A0441187B6 /* DoseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoseStore.swift; sourceTree = "<group>"; };
 		A20769AD02BC786210ACC14B /* KeychainTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTokenStore.swift; sourceTree = "<group>"; };
+		A51216960A45B657719F80C0 /* NotificationPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPreferences.swift; sourceTree = "<group>"; };
 		A7FEEF460822A8B96B7EEB2A /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
 		A9D3D64D26477779652CC079 /* DoesTrackApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoesTrackApp.swift; sourceTree = "<group>"; };
 		B0858EACC55C83D2C541F7D2 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
@@ -93,6 +96,7 @@
 		D8E676A04FBD49F726D5BD16 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D9EB3EA3D4B39912F4967CBE /* PKModeling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PKModeling.swift; sourceTree = "<group>"; };
 		DA578766BB396E7E45151025 /* GitHubSyncClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubSyncClient.swift; sourceTree = "<group>"; };
+		DD910E8225F362B55542BD7D /* NotificationResponder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationResponder.swift; sourceTree = "<group>"; };
 		DE2DA9ED84695F7605E27916 /* DoseStore+ICloudSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DoseStore+ICloudSync.swift"; sourceTree = "<group>"; };
 		DE72013EBDCEB81696D3A017 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		E26912DE26FD207B2F9A6973 /* PKModelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PKModelView.swift; sourceTree = "<group>"; };
@@ -146,6 +150,7 @@
 			isa = PBXGroup;
 			children = (
 				C5E6147D7C5F385628D82A86 /* DoseModels.swift */,
+				A51216960A45B657719F80C0 /* NotificationPreferences.swift */,
 				3BD4139226271BF7BC80E6F1 /* WellnessModels.swift */,
 			);
 			path = Models;
@@ -187,6 +192,7 @@
 				A7FEEF460822A8B96B7EEB2A /* HealthKitService.swift */,
 				00B201DF8E4288953E9AEDAF /* ICloudSyncClient.swift */,
 				A20769AD02BC786210ACC14B /* KeychainTokenStore.swift */,
+				DD910E8225F362B55542BD7D /* NotificationResponder.swift */,
 				460769FBEC8B4BD070AB688C /* NotificationScheduler.swift */,
 				D9EB3EA3D4B39912F4967CBE /* PKModeling.swift */,
 			);
@@ -327,6 +333,8 @@
 				72255078463C516A197374A8 /* ICloudSyncClient.swift in Sources */,
 				F35F1D21165568F2CDCC0578 /* KeychainTokenStore.swift in Sources */,
 				9F855490ED5CDE1D7EA06089 /* MedicationDetailView.swift in Sources */,
+				0043971071212DEF54325862 /* NotificationPreferences.swift in Sources */,
+				30C41626271090A57FF20E2C /* NotificationResponder.swift in Sources */,
 				1844D6AFA3D25D69C5EAE6FC /* NotificationScheduler.swift in Sources */,
 				DE9B80C3A4C4D4B9F9FD97FF /* NotificationsView.swift in Sources */,
 				69209947A1991EB0DE4ABB29 /* PKModelView.swift in Sources */,

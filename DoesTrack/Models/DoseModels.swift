@@ -52,12 +52,17 @@ struct MedicationInventory: Codable, Equatable {
         nextRefillDate: nil
     )
 
+    /// Only counters someone actually filled in count as tracked. The default
+    /// low threshold alone used to flag every medication as needing a refill.
     var isTracked: Bool {
-        currentQuantity > 0 || lowQuantityThreshold > 0 || nextRefillDate != nil
+        currentQuantity > 0 || nextRefillDate != nil
     }
 
     var needsRefill: Bool {
-        currentQuantity <= lowQuantityThreshold || Date.doseTrackCalendar.isDateInToday(nextRefillDate ?? .distantFuture)
+        if let nextRefillDate, nextRefillDate.startOfDay <= Date().startOfDay {
+            return true
+        }
+        return currentQuantity <= lowQuantityThreshold
     }
 }
 

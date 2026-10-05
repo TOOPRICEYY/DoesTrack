@@ -91,7 +91,7 @@ struct NotificationsCenterView: View {
                             VStack(spacing: 12) {
                                 ForEach(doses) { dose in
                                     NotificationDoseRow(dose: dose) { status in
-                                        store.record(dose, status: status)
+                                        store.quickRecord(dose, status: status)
                                     }
                                 }
                             }

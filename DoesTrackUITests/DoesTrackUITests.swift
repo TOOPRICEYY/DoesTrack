@@ -22,6 +22,48 @@ final class DoesTrackUITests: XCTestCase {
         verifyProfileSettingsAndSync()
     }
 
+    func testNotificationPrivacySettings() throws {
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Good'")).firstMatch.waitForExistence(timeout: 8))
+
+        app.tabBars.buttons["Profile"].waitAndTap()
+        app.swipeUp()
+        app.buttons["App Settings"].waitAndTap()
+        app.buttons["Notifications"].waitAndTap()
+        XCTAssertTrue(app.navigationBars["Notifications"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.switches["Dose reminders"].waitForExistence(timeout: 4))
+        attachScreenshot(named: "notification-settings-top")
+
+        app.buttons["Once a day"].waitAndTap()
+        XCTAssertTrue(app.staticTexts["A single reminder each day at your first dose time."].waitForExistence(timeout: 3))
+        app.buttons["Every dose"].waitAndTap()
+
+        app.swipeUp()
+        app.buttons["Generic"].waitAndTap()
+        XCTAssertTrue(app.textFields["Generic reminder title"].waitForExistence(timeout: 3))
+
+        let hide = app.switches["Hide details on lock screen"]
+        XCTAssertTrue(hide.waitForExistence(timeout: 3))
+        hide.switches.firstMatch.tap()
+
+        app.swipeUp()
+        app.buttons["Quiet"].waitAndTap()
+        let quietHours = app.switches["Quiet hours"]
+        XCTAssertTrue(quietHours.waitForExistence(timeout: 3))
+        quietHours.switches.firstMatch.tap()
+        XCTAssertTrue(app.datePickers["From"].waitForExistence(timeout: 3) || app.staticTexts["From"].waitForExistence(timeout: 3))
+
+        app.swipeUp()
+        XCTAssertTrue(app.otherElements["Locked preview"].waitForExistence(timeout: 3) || app.staticTexts["Locked"].waitForExistence(timeout: 3))
+        attachScreenshot(named: "notification-settings-discreet")
+    }
+
+    private func attachScreenshot(named name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     private func verifyHydrationCard() {
         app.buttons["Customize home"].waitAndTap()
         app.swipeUp()

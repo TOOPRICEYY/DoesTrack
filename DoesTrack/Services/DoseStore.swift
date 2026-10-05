@@ -16,6 +16,8 @@ final class DoseStore: ObservableObject {
         didSet {
             markICloudDataChanged()
             save()
+            // Logged doses must stop reminding (and drop their follow-ups).
+            scheduleNotificationRefresh()
         }
     }
 
@@ -35,6 +37,7 @@ final class DoseStore: ObservableObject {
         didSet {
             markICloudDataChanged()
             save()
+            scheduleNotificationRefresh()
         }
     }
 
@@ -100,6 +103,14 @@ final class DoseStore: ObservableObject {
 
     @Published var storageError: String?
     @Published var notificationAuthorization: UNAuthorizationStatus = .notDetermined
+    @Published var notificationPreviewSetting: UNShowPreviewsSetting = .always
+    @Published var notificationPreferences = NotificationPreferences() {
+        didSet {
+            guard notificationPreferences != oldValue else { return }
+            persistNotificationPreferences()
+            scheduleNotificationRefresh()
+        }
+    }
     @Published var lastAutoSyncError: String?
     @Published var lastICloudSyncError: String?
 
@@ -108,10 +119,12 @@ final class DoseStore: ObservableObject {
     private var isLoading = false
     private var hasPendingSave = false
     private var hasPendingNotificationRefresh = false
+    private var notificationScheduleTask: Task<Void, Never>?
     var isICloudSyncInFlight = false
     var isApplyingICloudData = false
     private let notificationScheduler = NotificationScheduler()
     private static let markedAllReadKey = "doseTrackNotificationsMarkedAllAt"
+    static let notificationPreferencesKey = "doseTrackNotificationPreferences"
 
     init(fileURL: URL? = nil) {
         let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
@@ -123,8 +136,10 @@ final class DoseStore: ObservableObject {
             UserDefaults.standard.removeObject(forKey: HomeCardLayoutStore.storageKey)
             UserDefaults.standard.removeObject(forKey: Self.markedAllReadKey)
             UserDefaults.standard.removeObject(forKey: Self.hydrationGoalKey)
+            UserDefaults.standard.removeObject(forKey: Self.notificationPreferencesKey)
         }
 
+        notificationPreferences = Self.loadNotificationPreferences()
         load()
         resumeExpiredPauses()
     }
@@ -249,26 +264,30 @@ final class DoseStore: ObservableObject {
 
     func deleteMedications(at offsets: IndexSet) {
         let visible = medications.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-        let ids = offsets.map { visible[$0].id }
-        recordSyncTombstones(recordType: "medication", recordIDs: ids)
-        recordSyncTombstones(recordType: "doseLog", recordIDs: logs.filter { ids.contains($0.medicationID) }.map(\.id))
-        medications.removeAll { ids.contains($0.id) }
-        logs.removeAll { ids.contains($0.medicationID) }
+        removeMedications(withIDs: Set(offsets.map { visible[$0].id }))
     }
 
     func deleteMedication(_ medication: Medication) {
-        recordSyncTombstone(recordType: "medication", recordID: medication.id)
-        recordSyncTombstones(recordType: "doseLog", recordIDs: logs.filter { $0.medicationID == medication.id }.map(\.id))
-        medications.removeAll { $0.id == medication.id }
-        logs.removeAll { $0.medicationID == medication.id }
+        removeMedications(withIDs: [medication.id])
     }
 
     func deleteStack(named stackName: String) {
-        let ids = medications.filter { $0.stackName == stackName }.map(\.id)
-        recordSyncTombstones(recordType: "medication", recordIDs: ids)
+        removeMedications(withIDs: Set(medications.filter { $0.stackName == stackName }.map(\.id)))
+        if let cycle = cycle(forStack: stackName) {
+            deleteCycle(cycle)
+        }
+    }
+
+    /// Deletes medications along with everything that only makes sense
+    /// attached to them (logs and batches), tombstoning each for sync.
+    private func removeMedications(withIDs ids: Set<UUID>) {
+        guard !ids.isEmpty else { return }
+        recordSyncTombstones(recordType: "medication", recordIDs: Array(ids))
         recordSyncTombstones(recordType: "doseLog", recordIDs: logs.filter { ids.contains($0.medicationID) }.map(\.id))
+        recordSyncTombstones(recordType: "batch", recordIDs: batches.filter { ids.contains($0.medicationID) }.map(\.id))
         medications.removeAll { ids.contains($0.id) }
         logs.removeAll { ids.contains($0.medicationID) }
+        batches.removeAll { ids.contains($0.medicationID) }
     }
 
     func setMedicationActive(_ medication: Medication, isActive: Bool) {
@@ -640,7 +659,13 @@ final class DoseStore: ObservableObject {
             .filter { !Self.isDeleted(recordType: "medication", recordID: $0.id, tombstones: tombstones) }
             .map { ($0.id, $0) })
         for remoteMedication in backup.medications where !Self.isDeleted(recordType: "medication", recordID: remoteMedication.id, tombstones: tombstones) {
-            if preferRemote || medicationByID[remoteMedication.id] == nil {
+            guard let local = medicationByID[remoteMedication.id] else {
+                medicationByID[remoteMedication.id] = remoteMedication
+                continue
+            }
+            // Edits carry updatedAt, so the newest copy wins regardless of
+            // which side synced first; ties fall back to preferRemote.
+            if remoteMedication.updatedAt > local.updatedAt || (preferRemote && remoteMedication.updatedAt == local.updatedAt) {
                 medicationByID[remoteMedication.id] = remoteMedication
             }
         }
@@ -686,7 +711,7 @@ final class DoseStore: ObservableObject {
         reconPlans = Self.mergeByID(local: reconPlans.filter { !Self.isDeleted(recordType: "reconPlan", recordID: $0.id, tombstones: tombstones) }, remote: backup.reconPlans.filter { !Self.isDeleted(recordType: "reconPlan", recordID: $0.id, tombstones: tombstones) }, preferRemote: preferRemote)
             .sorted { $0.createdAt > $1.createdAt }
         hydrationDays = mergeHydration(remote: backup.hydrationDays, preferRemote: preferRemote)
-        batches = Self.mergeByID(local: batches.filter { !Self.isDeleted(recordType: "batch", recordID: $0.id, tombstones: tombstones) }, remote: backup.batches.filter { !Self.isDeleted(recordType: "batch", recordID: $0.id, tombstones: tombstones) }, preferRemote: preferRemote)
+        batches = Self.mergeNewest(local: batches.filter { !Self.isDeleted(recordType: "batch", recordID: $0.id, tombstones: tombstones) }, remote: backup.batches.filter { !Self.isDeleted(recordType: "batch", recordID: $0.id, tombstones: tombstones) }, preferRemote: preferRemote)
             .sorted { $0.purchaseDate > $1.purchaseDate }
     }
 
@@ -694,6 +719,20 @@ final class DoseStore: ObservableObject {
         var byID = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
         for item in remote {
             if preferRemote || byID[item.id] == nil {
+                byID[item.id] = item
+            }
+        }
+        return Array(byID.values)
+    }
+
+    private static func mergeNewest(local: [MedicationBatch], remote: [MedicationBatch], preferRemote: Bool) -> [MedicationBatch] {
+        var byID = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
+        for item in remote {
+            guard let existing = byID[item.id] else {
+                byID[item.id] = item
+                continue
+            }
+            if item.updatedAt > existing.updatedAt || (preferRemote && item.updatedAt == existing.updatedAt) {
                 byID[item.id] = item
             }
         }
@@ -850,13 +889,34 @@ final class DoseStore: ObservableObject {
         return min(100, max(0, Int(score.rounded())))
     }
 
-    func inventoryWarnings() -> [Medication] {
-        medications
-            .filter { $0.isActive && $0.inventory.isTracked && $0.inventory.needsRefill }
-            .sorted { $0.inventory.currentQuantity < $1.inventory.currentQuantity }
+    /// Active medications running low. Batch-tracked medications warn when
+    /// what's left won't cover the next week of scheduled doses; others fall
+    /// back to the legacy per-medication counters.
+    func inventoryWarnings(reference: Date = Date()) -> [Medication] {
+        let upcoming = scheduledDoses(from: reference, through: reference.addingDays(Self.lowSupplyDays))
+            .filter { $0.scheduledAt >= reference }
+        let neededByMedication = Dictionary(grouping: upcoming, by: \.medication.id)
+            .mapValues { $0.reduce(0) { $0 + $1.schedule.amount } }
+
+        return medications
+            .filter { medication in
+                guard medication.isActive else { return false }
+                if batches.contains(where: { $0.medicationID == medication.id }) {
+                    let needed = neededByMedication[medication.id] ?? 0
+                    return needed > 0 && remainingBatchQuantity(for: medication.id) < needed
+                }
+                return medication.inventory.isTracked && medication.inventory.needsRefill
+            }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
-    private func scheduledDoses(from start: Date, through end: Date) -> [ScheduledDose] {
+    static let lowSupplyDays = 7
+
+    func remainingBatchQuantity(for medicationID: UUID) -> Double {
+        batches(for: medicationID).reduce(0) { $0 + $1.remainingQuantity }
+    }
+
+    func scheduledDoses(from start: Date, through end: Date) -> [ScheduledDose] {
         var output: [ScheduledDose] = []
         var date = start.startOfDay
         let final = end.startOfDay
@@ -911,6 +971,11 @@ final class DoseStore: ObservableObject {
     func refreshNotificationAuthorization() async {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         notificationAuthorization = settings.authorizationStatus
+        notificationPreviewSetting = settings.showPreviewsSetting
+    }
+
+    var notificationsAuthorized: Bool {
+        [.authorized, .provisional, .ephemeral].contains(notificationAuthorization)
     }
 
     /// Prompts for permission if needed, then schedules reminders.
@@ -919,16 +984,85 @@ final class DoseStore: ObservableObject {
         let granted = try await notificationScheduler.requestAuthorization()
         await refreshNotificationAuthorization()
         guard granted else { return false }
-        try await notificationScheduler.schedule(medications: medications)
+        await syncNotificationsIfAuthorized()
         return true
     }
 
     /// Re-schedules pending reminders if permission is already granted.
-    /// Never prompts; safe to call on launch and after any medication change.
+    /// Never prompts; safe to call on launch and after any change. Runs are
+    /// serialized so overlapping refreshes can't leave stale reminders.
     func syncNotificationsIfAuthorized() async {
+        let previous = notificationScheduleTask
+        let task = Task { @MainActor [weak self] in
+            await previous?.value
+            await self?.rescheduleNotifications()
+        }
+        notificationScheduleTask = task
+        await task.value
+    }
+
+    private func rescheduleNotifications() async {
         await refreshNotificationAuthorization()
-        guard notificationAuthorization == .authorized || notificationAuthorization == .provisional else { return }
-        try? await notificationScheduler.schedule(medications: medications)
+        guard notificationsAuthorized else { return }
+
+        let preferences = notificationPreferences
+        notificationScheduler.registerCategories(preferences: preferences)
+
+        let now = Date()
+        let doses = scheduledDoses(from: now, through: now.addingDays(NotificationScheduler.daysAhead))
+        let requests = notificationScheduler.makeRequests(
+            doses: doses,
+            preferences: preferences,
+            lastCheckIn: latestSymptomCheckIn?.createdAt,
+            now: now
+        )
+        let recentCutoff = now.addingDays(-2)
+        let loggedKeys = Set(logs.compactMap { log -> String? in
+            guard let scheduleID = log.scheduleID, log.scheduledAt >= recentCutoff else { return nil }
+            return DoseReminderKey(medicationID: log.medicationID, scheduleID: scheduleID, scheduledAt: log.scheduledAt).string
+        })
+        await notificationScheduler.apply(requests, loggedKeys: loggedKeys)
+    }
+
+    func sendTestNotification() async throws {
+        guard notificationsAuthorized else { return }
+        notificationScheduler.registerCategories(preferences: notificationPreferences)
+        let sample = medications.first { $0.isActive && !$0.schedules.isEmpty }
+        try await notificationScheduler.sendTest(preferences: notificationPreferences, sampleMedication: sample)
+    }
+
+    /// Finds the scheduled occurrence a notification refers to.
+    func scheduledDose(for key: DoseReminderKey) -> ScheduledDose? {
+        scheduledDoses(on: key.scheduledAt).first { dose in
+            dose.medication.id == key.medicationID &&
+                dose.schedule.id == key.scheduleID &&
+                abs(dose.scheduledAt.timeIntervalSince(key.scheduledAt)) < 60
+        }
+    }
+
+    /// One-tap logging (notification actions, quick buttons) that draws from
+    /// the default batch the same way the full logging sheet does.
+    func quickRecord(_ dose: ScheduledDose, status: DoseLogStatus) {
+        let batchID = status.deductsInventory ? defaultBatch(for: dose.medication.id)?.id : nil
+        record(dose, status: status, batchID: batchID)
+    }
+
+    func snoozeNotification(_ content: UNNotificationContent) async {
+        await notificationScheduler.snooze(content, minutes: notificationPreferences.snoozeMinutes)
+    }
+
+    private static func loadNotificationPreferences() -> NotificationPreferences {
+        guard let data = UserDefaults.standard.data(forKey: notificationPreferencesKey),
+              let preferences = try? JSONDecoder().decode(NotificationPreferences.self, from: data)
+        else {
+            return NotificationPreferences()
+        }
+        return preferences
+    }
+
+    private func persistNotificationPreferences() {
+        guard let data = try? JSONEncoder().encode(notificationPreferences) else { return }
+        UserDefaults.standard.set(data, forKey: Self.notificationPreferencesKey)
     }
 
     private func scheduleNotificationRefresh() {

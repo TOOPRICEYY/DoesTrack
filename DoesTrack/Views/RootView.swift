@@ -59,6 +59,9 @@ struct RootView: View {
             case .active:
                 store.resumeExpiredPauses()
                 Task {
+                    // Rolls the reminder window forward and picks up
+                    // permission changes made in Settings.
+                    await store.syncNotificationsIfAuthorized()
                     await store.performICloudAutoSyncIfEnabled()
                 }
             case .background:

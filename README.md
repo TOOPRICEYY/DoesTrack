@@ -19,7 +19,9 @@ DoesTrack is a SwiftUI iPhone, iPad, and Mac protocol and medication tracker bui
 - Manual dose logging with structured method, injection site, pain, and site-reaction fields; site pickers show real last-used dates and can auto-pick the least recently used site.
 - Adherence insights, seven-day chart, streaks, refill warnings, Pulse detail sheets, and local protocol chat summaries.
 - Pharmacokinetic modelling in Pulse for supported protocol medications, with relative exposure curves (logged amounts take precedence over nominal doses) and citations for bundled default parameters.
-- Local notification scheduling that runs automatically: reminders re-sync on launch and whenever medications change (once permission is granted from Settings > Notifications), capped below iOS's 64 pending-request limit.
+- Local notification scheduling that runs automatically: reminders re-sync on launch, on foreground, and whenever medications or logs change (once permission is granted from Settings > Notifications), skip doses already logged, and stay below iOS's 64 pending-request limit.
+- Discreet reminder settings (device-local, not synced): full / name-only (uses the medication nickname) / generic content with a custom title and message, hide details on the lock screen, sound / silent / quiet (passive) delivery, every dose or a once-a-day summary, remind-early lead time, follow-up nudges, snooze length, quiet hours, an optional weekly check-in reminder, a live preview, and a Send Test button.
+- Mark Taken and Snooze actions directly on reminders (labelled Done / Later in generic mode).
 - Monthly expense estimates computed from tracked per-dose costs and the upcoming 30-day schedule.
 - GitHub sync using the GitHub Contents API to push and merge a JSON backup file in a repository.
 - Private iCloud sync across iPhone, iPad, and Mac, with automatic launch/foreground/background sync, manual sync, conflict retry, and deletion propagation.
