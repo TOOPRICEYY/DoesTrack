@@ -26,6 +26,8 @@
 	<true/>
 	<key>NSHealthShareUsageDescription</key>
 	<string>DoesTrack reads Apple Health metrics such as weight, sleep, resting heart rate, blood pressure, steps, and active energy to show local wellness context next to your dose schedule.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>DoesTrack may write dose-related wellness entries to Apple Health only when you choose to sync them, so your health record can stay aligned with your local dose tracking.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchScreen</key>

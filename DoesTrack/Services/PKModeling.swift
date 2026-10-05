@@ -23,7 +23,7 @@ struct PKParameterSet: Identifiable {
     var citations: [PKCitation]
 
     /// Absorption half-life for the route the dose was actually given by.
-    /// IM absorbs faster (sharper, earlier peak) than SubQ; oral faster still.
+    /// Shorter absorption gives a sharper, earlier peak for display.
     func absorptionHalfLifeDays(forRoute route: String) -> Double {
         let r = route.lowercased()
         if r.contains("im") || r.contains("intramuscular") {
@@ -77,12 +77,12 @@ enum PKParameterLibrary {
             absorptionHalfLifeDaysSubQ: 0.5,
             absorptionHalfLifeDaysIM: nil,
             route: "Subcutaneous",
-            parameterSummary: "Half-life 5 days; SC absolute bioavailability 80%.",
-            modelNote: "Uses the official label half-life and absolute bioavailability to estimate relative scheduled-dose exposure.",
+            parameterSummary: "Half-life 5 days; SC bioavailability 80%; Tmax 8-72 hours.",
+            modelNote: "Uses the official label half-life and absolute bioavailability. Absorption smoothing is tuned within the label Tmax range, so the curve remains relative rather than a serum concentration prediction.",
             citations: [
                 PKCitation(
                     title: "DailyMed: Mounjaro (tirzepatide) label",
-                    detail: "PK section reports an approximately 5-day elimination half-life and 80% mean absolute bioavailability after subcutaneous administration.",
+                    detail: "PK section reports Tmax 8-72 hours, 80% mean absolute bioavailability after subcutaneous administration, and an approximately 5-day elimination half-life.",
                     url: "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=d2d7da5d-ad07-4228-955f-cf7e355c8cc0"
                 )
             ]
@@ -95,8 +95,8 @@ enum PKParameterLibrary {
             absorptionHalfLifeDaysSubQ: 0.4,
             absorptionHalfLifeDaysIM: 0.25,
             route: "Subcutaneous or intramuscular",
-            parameterSummary: "Half-life 32-33 hours; relative dose scale.",
-            modelNote: "Uses the published average elimination half-life. Because the cited study reports relative SC/IM exposure rather than an absolute bioavailability for app dose units, dose scale is kept at 100%.",
+            parameterSummary: "Half-life 32-33 hours; peak about 20 hours; relative dose scale.",
+            modelNote: "Uses published elimination half-life and peak timing. Because the cited crossover study reports SC/IM bioequivalence by AUC rather than an absolute bioavailability for app dose units, dose scale is kept relative.",
             citations: [
                 PKCitation(
                     title: "Mannaerts et al., Human Reproduction, 1998",
@@ -115,15 +115,15 @@ enum PKParameterLibrary {
             matchTerms: ["bpc-157", "bpc 157", "body-protective compound 157", "body protective compound 157", "pl 14736", "pl-14736", "bepecin"],
             halfLifeDays: 20.0 / 1_440.0,
             availabilityMultiplier: 1.0,
-            absorptionHalfLifeDaysSubQ: 0.02,
-            absorptionHalfLifeDaysIM: 0.015,
+            absorptionHalfLifeDaysSubQ: 0.004,
+            absorptionHalfLifeDaysIM: 0.002,
             route: "Subcutaneous estimate",
-            parameterSummary: "Preclinical half-life estimate 20 minutes; relative dose scale.",
-            modelNote: "No validated human subcutaneous PK or absolute subcutaneous bioavailability was found. This curve uses a midpoint-style preclinical short half-life estimate to visualize rapid peptide washout only; it is not a serum prediction, dosing recommendation, or safety statement.",
+            parameterSummary: "Preclinical rat/dog IV/IM half-life <30 minutes; relative scale only.",
+            modelNote: "No validated human subcutaneous PK or absolute subcutaneous bioavailability was found. The curve uses preclinical short half-life and rapid IM peak timing only as a rough washout visualization; it is not human SC PK, a serum prediction, dosing guidance, or a safety statement.",
             citations: [
                 PKCitation(
                     title: "Wu et al., Frontiers in Pharmacology, 2022",
-                    detail: "Rat and dog ADME study of BPC-157 reporting short preclinical systemic half-life values. Used here only as a preclinical anchor because validated human subcutaneous PK parameters were not found.",
+                    detail: "Rat and dog ADME study reporting prototype BPC-157 half-life below 30 minutes, rapid IM Tmax, and animal IM bioavailability ranges. Used only as a preclinical anchor because validated human subcutaneous PK parameters were not found.",
                     url: "https://doi.org/10.3389/fphar.2022.1026182"
                 )
             ]
@@ -136,8 +136,8 @@ enum PKParameterLibrary {
             absorptionHalfLifeDaysSubQ: 4.0,
             absorptionHalfLifeDaysIM: 2.5,
             route: "Intramuscular or subcutaneous",
-            parameterSummary: "Effective curve half-life 5 days; relative dose scale.",
-            modelNote: "This is an effective visualization parameter derived from observed serum timing after 200 mg IM testosterone cypionate, not a measured terminal half-life or serum testosterone prediction.",
+            parameterSummary: "Effective depot curve half-life 5 days; relative dose scale.",
+            modelNote: "This absorption/elimination pair is an effective visualization fit to observed IM serum timing and label depot behavior, not a measured terminal half-life or serum testosterone prediction. SubQ timing is extrapolated.",
             citations: [
                 PKCitation(
                     title: "Nankin, Fertility and Sterility, 1987",
@@ -146,7 +146,7 @@ enum PKParameterLibrary {
                 ),
                 PKCitation(
                     title: "DailyMed: Depo-Testosterone label",
-                    detail: "Label identifies testosterone cypionate injection as intramuscular and describes replacement dosing intervals.",
+                    detail: "Label describes testosterone cypionate in oil as a slowly absorbed intramuscular depot and reports an approximately 8-day IM half-life.",
                     url: "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=cfbb53d4-b868-4a28-8436-f9112eb01c39"
                 )
             ]
@@ -268,6 +268,7 @@ enum PKModeler {
 
         let values = points.map(\.value)
         let currentValue = exposure(at: referenceDate, events: events, eliminationRate: eliminationRate, absorptionRate: absorptionRate, availability: parameters.availabilityMultiplier)
+        let averageValue = timeWeightedAverage(points: points, windowStart: windowStart, windowEnd: windowEnd) ?? currentValue
 
         return PKMedicationProfile(
             medication: medication,
@@ -277,7 +278,7 @@ enum PKModeler {
             currentValue: currentValue,
             peakValue: values.max() ?? currentValue,
             troughValue: values.min() ?? currentValue,
-            averageValue: values.reduce(0, +) / Double(values.count),
+            averageValue: averageValue,
             windowStart: windowStart,
             windowEnd: windowEnd,
             absorptionHalfLifeDays: absorptionHalfLife
@@ -349,19 +350,35 @@ enum PKModeler {
         }
     }
 
+    private static func timeWeightedAverage(points: [PKPoint], windowStart: Date, windowEnd: Date) -> Double? {
+        guard windowEnd > windowStart else { return nil }
+        let sortedPoints = points.sorted { $0.date < $1.date }
+        guard sortedPoints.count >= 2 else { return sortedPoints.first?.value }
+
+        var area = 0.0
+        for (left, right) in zip(sortedPoints, sortedPoints.dropFirst()) {
+            let intervalDays = right.date.timeIntervalSince(left.date) / 86_400
+            guard intervalDays > 0 else { continue }
+            area += ((left.value + right.value) / 2) * intervalDays
+        }
+
+        let durationDays = windowEnd.timeIntervalSince(windowStart) / 86_400
+        guard durationDays > 0 else { return nil }
+        return area / durationDays
+    }
+
     private static func doseAmount(for medication: Medication, schedule: DoseSchedule?, log: DoseLog?) -> Double {
-        // What was actually logged always beats the medication's nominal dose:
-        // a recorded half dose must plot as a half dose.
+        // Actual logs win; otherwise use the schedule amount before a catalog default.
         if let amount = log?.amount, amount > 0 {
+            return amount
+        }
+
+        if let amount = schedule?.amount, amount > 0 {
             return amount
         }
 
         if let parsedDose = firstNumber(in: medication.dose), parsedDose > 0 {
             return parsedDose
-        }
-
-        if let amount = schedule?.amount, amount > 0 {
-            return amount
         }
 
         return 1

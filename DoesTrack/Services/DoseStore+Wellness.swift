@@ -20,6 +20,7 @@ extension DoseStore {
 
     func toggleSupplement(_ supplement: Supplement, on date: Date) {
         if let existing = supplementLog(for: supplement, on: date) {
+            recordSyncTombstone(recordType: "supplementLog", recordID: existing.id)
             supplementLogs.removeAll { $0.id == existing.id }
         } else {
             supplementLogs.append(SupplementLog(supplementID: supplement.id, day: date))
@@ -36,6 +37,8 @@ extension DoseStore {
     }
 
     func deleteSupplement(_ supplement: Supplement) {
+        recordSyncTombstone(recordType: "supplement", recordID: supplement.id)
+        recordSyncTombstones(recordType: "supplementLog", recordIDs: supplementLogs.filter { $0.supplementID == supplement.id }.map(\.id))
         supplements.removeAll { $0.id == supplement.id }
         supplementLogs.removeAll { $0.supplementID == supplement.id }
     }
@@ -91,6 +94,7 @@ extension DoseStore {
     }
 
     func deleteLabResult(_ result: LabResult) {
+        recordSyncTombstone(recordType: "labResult", recordID: result.id)
         labResults.removeAll { $0.id == result.id }
     }
 
@@ -150,6 +154,7 @@ extension DoseStore {
     }
 
     func deleteCycle(_ cycle: ProtocolCycle) {
+        recordSyncTombstone(recordType: "protocolCycle", recordID: cycle.id)
         cycles.removeAll { $0.id == cycle.id }
     }
 
@@ -178,6 +183,7 @@ extension DoseStore {
     }
 
     func deleteReconPlan(_ plan: ReconPlan) {
+        recordSyncTombstone(recordType: "reconPlan", recordID: plan.id)
         reconPlans.removeAll { $0.id == plan.id }
     }
 
@@ -213,6 +219,7 @@ extension DoseStore {
     }
 
     func deleteBatch(_ batch: MedicationBatch) {
+        recordSyncTombstone(recordType: "batch", recordID: batch.id)
         batches.removeAll { $0.id == batch.id }
     }
 
@@ -234,38 +241,62 @@ extension DoseStore {
         }
     }
 
-    // MARK: Interval shifting
+    // MARK: Regimen shifting
 
-    /// True when the medication has an every-N-days schedule that is still
-    /// running on the given date, so an unscheduled dose can re-anchor it.
-    func hasShiftableIntervalSchedule(medicationID: UUID, on date: Date) -> Bool {
+    /// True when the medication has a schedule that is still running on the
+    /// given date, so an unscheduled dose can re-anchor future doses.
+    func hasShiftableRegimenSchedule(medicationID: UUID, on date: Date) -> Bool {
         guard let medication = medication(for: medicationID) else { return false }
         return medication.schedules.contains { schedule in
-            (schedule.intervalDays ?? 0) > 1 &&
-            (schedule.endDate.map { $0 >= date.startOfDay } ?? true)
+            schedule.isShiftable(on: date.startOfDay)
         }
     }
 
-    /// Re-anchors every-N-days schedules so the next dose lands N days after
-    /// the anchor. History is preserved: the running schedule is ended the
-    /// day before the anchor and a copy continues from the anchor day.
-    func shiftIntervalSchedules(for medicationID: UUID, anchoredAt anchor: Date) {
+    func regimenShiftPreview(medicationID: UUID, anchoredAt anchor: Date) -> String? {
+        guard let medication = medication(for: medicationID) else { return nil }
+        let anchorDay = anchor.startOfDay
+        let shiftedSchedules = medication.schedules
+            .filter { $0.isShiftable(on: anchorDay) }
+            .map { shiftedRegimenSchedule(from: $0, anchoredAt: anchorDay) }
+
+        guard !shiftedSchedules.isEmpty else { return nil }
+
+        let nextDate = nextOccurrence(after: anchorDay, schedules: shiftedSchedules)
+        let nextText = nextDate.map { " Next scheduled dose: \($0.formatted(date: .abbreviated, time: .omitted))." } ?? ""
+        if shiftedSchedules.contains(where: { ($0.intervalDays ?? 0) > 1 }) {
+            return "The every-N-days schedule restarts from this dose.\(nextText)"
+        }
+        if shiftedSchedules.allSatisfy({ $0.daysOfWeek == Set(Weekday.allCases) }) {
+            return "The daily schedule resumes after this dose.\(nextText)"
+        }
+        if shiftedSchedules.allSatisfy({ $0.daysOfWeek.count == 1 }) {
+            let weekday = shiftedSchedules.first?.daysOfWeek.first?.fullName ?? "the logged day"
+            return "The weekly schedule moves to \(weekday).\(nextText)"
+        }
+        if shiftedSchedules.allSatisfy({ $0.daysOfWeek.count == 2 }) {
+            return "The twice-weekly schedule shifts around this dose.\(nextText)"
+        }
+        return "Future interval doses continue after this dose.\(nextText)"
+    }
+
+    /// Re-anchors interval-style schedules so an unscheduled taken dose becomes
+    /// the anchor and future scheduled doses continue after it. History is
+    /// preserved by ending the running schedule the day before the anchor and
+    /// creating a new schedule segment for the shifted future.
+    func shiftRegimenSchedules(for medicationID: UUID, anchoredAt anchor: Date) {
         guard var medication = medication(for: medicationID) else { return }
 
         let anchorDay = anchor.startOfDay
         var changed = false
 
         medication.schedules = medication.schedules.flatMap { schedule -> [DoseSchedule] in
-            guard (schedule.intervalDays ?? 0) > 1,
-                  schedule.endDate.map({ $0 >= anchorDay }) ?? true
-            else {
+            guard schedule.isShiftable(on: anchorDay) else {
                 return [schedule]
             }
 
             changed = true
 
-            var shifted = schedule
-            shifted.startDate = anchorDay
+            var shifted = shiftedRegimenSchedule(from: schedule, anchoredAt: anchorDay)
 
             // Series not started yet: just move its start.
             if schedule.startDate.startOfDay >= anchorDay {
@@ -282,6 +313,83 @@ extension DoseStore {
         guard changed else { return }
         medication.updatedAt = Date()
         updateMedication(medication)
+    }
+
+    /// Backward-compatible wrappers for older call sites.
+    func hasShiftableIntervalSchedule(medicationID: UUID, on date: Date) -> Bool {
+        hasShiftableRegimenSchedule(medicationID: medicationID, on: date)
+    }
+
+    func shiftIntervalSchedules(for medicationID: UUID, anchoredAt anchor: Date) {
+        shiftRegimenSchedules(for: medicationID, anchoredAt: anchor)
+    }
+
+    private func shiftedRegimenSchedule(from schedule: DoseSchedule, anchoredAt anchorDay: Date) -> DoseSchedule {
+        var shifted = schedule
+        shifted.endDate = nil
+
+        if let intervalDays = schedule.intervalDays, intervalDays > 1 {
+            shifted.startDate = anchorDay.addingDays(intervalDays)
+            return shifted
+        }
+
+        if schedule.daysOfWeek.count == 1 || schedule.daysOfWeek.count == 2 {
+            shifted.daysOfWeek = shiftedWeekdays(schedule.daysOfWeek, anchoredAt: anchorDay)
+        }
+        shifted.startDate = anchorDay.addingDays(1)
+        return shifted
+    }
+
+    private func shiftedWeekdays(_ days: Set<Weekday>, anchoredAt anchorDay: Date) -> Set<Weekday> {
+        guard let anchorWeekday = Weekday(rawValue: Calendar.doseTrackCalendar.component(.weekday, from: anchorDay)) else {
+            return days
+        }
+
+        guard !days.isEmpty, days.count <= 2 else {
+            return days
+        }
+
+        let nearest = days
+            .map { day in (day: day, offset: signedOffset(from: day, to: anchorWeekday)) }
+            .sorted { lhs, rhs in
+                let lhsDistance = abs(lhs.offset)
+                let rhsDistance = abs(rhs.offset)
+                if lhsDistance == rhsDistance {
+                    return lhs.offset > rhs.offset
+                }
+                return lhsDistance < rhsDistance
+            }
+            .first
+
+        guard let offset = nearest?.offset else { return days }
+        return Set(days.compactMap { weekday($0, shiftedBy: offset) })
+    }
+
+    private func signedOffset(from source: Weekday, to target: Weekday) -> Int {
+        let forward = (target.rawValue - source.rawValue + 7) % 7
+        return forward <= 3 ? forward : forward - 7
+    }
+
+    private func weekday(_ weekday: Weekday, shiftedBy offset: Int) -> Weekday? {
+        let zeroBased = (weekday.rawValue - 1 + offset + 700) % 7
+        return Weekday(rawValue: zeroBased + 1)
+    }
+
+    private func nextOccurrence(after anchorDay: Date, schedules: [DoseSchedule]) -> Date? {
+        let calendar = Calendar.doseTrackCalendar
+        for offset in 1...90 {
+            let day = anchorDay.addingDays(offset)
+            let candidates = schedules.compactMap { schedule -> Date? in
+                guard schedule.occurs(on: day, calendar: calendar) else { return nil }
+                return calendar.dateBySettingTime(hour: schedule.hour, minute: schedule.minute, on: day)
+            }
+
+            if let next = candidates.min() {
+                return next
+            }
+        }
+
+        return nil
     }
 
     // MARK: Injection sites

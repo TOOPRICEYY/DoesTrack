@@ -321,8 +321,8 @@ struct LogDoseSheet: View {
     /// Whether the amount field is the active quantity (mg/IU/…) or the
     /// constituted volume in mL. mL entry needs a batch concentration.
     @State private var entersVolume = false
-    /// Unscheduled dose on an every-N-days schedule: re-anchor the series
-    /// so forthcoming doses keep their interval from this dose.
+    /// Unscheduled dose on an interval-style schedule: re-anchor the regimen
+    /// so forthcoming doses continue after this dose.
     @State private var shiftsFutureDoses = false
 
     private let target: Target
@@ -442,8 +442,8 @@ struct LogDoseSheet: View {
                 if !availableBatches.isEmpty {
                     batchCard
                 }
-                if showsIntervalShiftOption {
-                    intervalShiftCard
+                if showsRegimenShiftOption {
+                    regimenShiftCard
                 }
                 methodCard
                 injectionSiteCard
@@ -634,16 +634,18 @@ struct LogDoseSheet: View {
         return value / batchConcentration
     }
 
-    private var showsIntervalShiftOption: Bool {
+    private var showsRegimenShiftOption: Bool {
         guard case .unscheduled = target, let medication else { return false }
-        return store.hasShiftableIntervalSchedule(medicationID: medication.id, on: targetDate)
+        return store.hasShiftableRegimenSchedule(medicationID: medication.id, on: targetDate)
     }
 
-    private var shiftableInterval: Int? {
-        medication?.schedules.first { ($0.intervalDays ?? 0) > 1 }?.intervalDays
+    private var regimenShiftPreview: String {
+        guard let medication else { return "" }
+        return store.regimenShiftPreview(medicationID: medication.id, anchoredAt: targetDate)
+            ?? "Future scheduled doses will continue after this unscheduled dose."
     }
 
-    private var intervalShiftCard: some View {
+    private var regimenShiftCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Toggle(isOn: $shiftsFutureDoses) {
                 Label("Shift future doses", systemImage: "arrow.right.to.line")
@@ -652,13 +654,9 @@ struct LogDoseSheet: View {
             }
             .tint(doseLoggingBlue)
 
-            if let interval = shiftableInterval {
-                Text(shiftsFutureDoses
-                     ? "The every-\(interval)-day schedule restarts from this dose; the next one lands \(targetDate.startOfDay.addingDays(interval).formatted(date: .abbreviated, time: .omitted))."
-                     : "Off: upcoming scheduled doses stay on their current days.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+            Text(shiftsFutureDoses ? regimenShiftPreview : "Off: upcoming scheduled doses stay on their current days.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
         .doseLoggingCard()
     }
@@ -979,7 +977,7 @@ struct LogDoseSheet: View {
                 volumeMl: resolvedVolumeMl
             )
             if shiftsFutureDoses {
-                store.shiftIntervalSchedules(for: medication.id, anchoredAt: effectiveLoggedAt)
+                store.shiftRegimenSchedules(for: medication.id, anchoredAt: effectiveLoggedAt)
             }
         case .editLog(let original):
             guard let amount = resolvedActiveAmount else { return }

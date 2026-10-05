@@ -113,7 +113,7 @@ struct SettingsView: View {
                     NavigationLink {
                         SyncView()
                     } label: {
-                        SettingsRow(icon: "server.rack", title: "Data Management", subtitle: "GitHub repo sync and backup", trailing: nil)
+                        SettingsRow(icon: "server.rack", title: "Data Management", subtitle: "iCloud and GitHub sync", trailing: nil)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Data Management")

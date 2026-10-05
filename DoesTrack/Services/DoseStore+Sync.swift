@@ -58,12 +58,25 @@ extension DoseStore {
             settings.lastRemoteSHA = nil
         }
 
-        let sha = try await client.push(
-            backup: exportBackup(),
-            settings: settings,
-            token: token,
-            knownSHA: settings.lastRemoteSHA
-        )
+        let sha: String
+        do {
+            sha = try await client.push(
+                backup: exportBackup(),
+                settings: settings,
+                token: token,
+                knownSHA: settings.lastRemoteSHA
+            )
+        } catch GitHubSyncError.conflict(_) {
+            let remote = try await client.pull(settings: settings, token: token)
+            mergeBackup(remote.backup)
+            settings.lastRemoteSHA = remote.sha
+            sha = try await client.push(
+                backup: exportBackup(),
+                settings: settings,
+                token: token,
+                knownSHA: settings.lastRemoteSHA
+            )
+        }
 
         settings.lastRemoteSHA = sha
         settings.lastSyncedAt = Date()

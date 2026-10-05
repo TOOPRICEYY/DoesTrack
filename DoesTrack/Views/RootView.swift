@@ -51,14 +51,19 @@ struct RootView: View {
         .task {
             store.resumeExpiredPauses()
             await store.syncNotificationsIfAuthorized()
+            await store.performICloudAutoSyncIfEnabled()
             await store.performAutoSyncIfEnabled()
         }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active:
                 store.resumeExpiredPauses()
+                Task {
+                    await store.performICloudAutoSyncIfEnabled()
+                }
             case .background:
                 Task {
+                    await store.performICloudAutoSyncIfEnabled()
                     await store.performAutoSyncIfEnabled()
                 }
             default:

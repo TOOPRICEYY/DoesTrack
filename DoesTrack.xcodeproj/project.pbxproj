@@ -24,6 +24,7 @@
 		6CD6F7506263E93BF2A7C5CE /* BatchViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9D93FA37FDE11D0CEBB2BE /* BatchViews.swift */; };
 		6CFDE8F3745716CFC9C0E44B /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0858EACC55C83D2C541F7D2 /* CalendarView.swift */; };
 		6D17C8CFC2D394FD6E69624A /* PulseChatViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BD76B45558A1BD4C1AE44A3 /* PulseChatViews.swift */; };
+		72255078463C516A197374A8 /* ICloudSyncClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00B201DF8E4288953E9AEDAF /* ICloudSyncClient.swift */; };
 		7B56DE5D9C60A429CDF95683 /* GitHubSyncClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA578766BB396E7E45151025 /* GitHubSyncClient.swift */; };
 		7BC572627650C6621CAD5E25 /* PulseSupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F046AF1B279362DA5A16E70A /* PulseSupportViews.swift */; };
 		828CE4AF8A3C31BE89464092 /* HomeCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ABE65328E4D0DB924E1B585 /* HomeCards.swift */; };
@@ -43,6 +44,7 @@
 		E165B7A3DC000590DE91D103 /* WellnessViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 297BD5EDD1E379F5FE4D000B /* WellnessViews.swift */; };
 		F35F1D21165568F2CDCC0578 /* KeychainTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20769AD02BC786210ACC14B /* KeychainTokenStore.swift */; };
 		F6E7BCCBB6A5C9C55B85ED10 /* DoseStore+Sync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D5FFAB2CC48F61389499302 /* DoseStore+Sync.swift */; };
+		FC9C1D89D8C710B31B207E49 /* DoseStore+ICloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE2DA9ED84695F7605E27916 /* DoseStore+ICloudSync.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,6 +58,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		00B201DF8E4288953E9AEDAF /* ICloudSyncClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICloudSyncClient.swift; sourceTree = "<group>"; };
 		0335AE67168208396E409198 /* SharedUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedUI.swift; sourceTree = "<group>"; };
 		09DDB6ADBEC3670037E4A16A /* DoesTrack.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = DoesTrack.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		117BFB435073C3453DF69B78 /* StacksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StacksView.swift; sourceTree = "<group>"; };
@@ -90,6 +93,7 @@
 		D8E676A04FBD49F726D5BD16 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D9EB3EA3D4B39912F4967CBE /* PKModeling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PKModeling.swift; sourceTree = "<group>"; };
 		DA578766BB396E7E45151025 /* GitHubSyncClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubSyncClient.swift; sourceTree = "<group>"; };
+		DE2DA9ED84695F7605E27916 /* DoseStore+ICloudSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DoseStore+ICloudSync.swift"; sourceTree = "<group>"; };
 		DE72013EBDCEB81696D3A017 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		E26912DE26FD207B2F9A6973 /* PKModelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PKModelView.swift; sourceTree = "<group>"; };
 		E7F12B58ADA5EBF6B20AB287 /* PulseHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulseHomeView.swift; sourceTree = "<group>"; };
@@ -176,10 +180,12 @@
 			isa = PBXGroup;
 			children = (
 				92C3F94EBD8D00A0441187B6 /* DoseStore.swift */,
+				DE2DA9ED84695F7605E27916 /* DoseStore+ICloudSync.swift */,
 				7D5FFAB2CC48F61389499302 /* DoseStore+Sync.swift */,
 				71E63C46CD864B15945FE9A6 /* DoseStore+Wellness.swift */,
 				DA578766BB396E7E45151025 /* GitHubSyncClient.swift */,
 				A7FEEF460822A8B96B7EEB2A /* HealthKitService.swift */,
+				00B201DF8E4288953E9AEDAF /* ICloudSyncClient.swift */,
 				A20769AD02BC786210ACC14B /* KeychainTokenStore.swift */,
 				460769FBEC8B4BD070AB688C /* NotificationScheduler.swift */,
 				D9EB3EA3D4B39912F4967CBE /* PKModeling.swift */,
@@ -310,6 +316,7 @@
 				DF56F81A984BDBDF3DBA09FE /* DoesTrackApp.swift in Sources */,
 				82BC538404CFB31BF5993174 /* DoseLoggingViews.swift in Sources */,
 				B528E8B62F60003F119D094A /* DoseModels.swift in Sources */,
+				FC9C1D89D8C710B31B207E49 /* DoseStore+ICloudSync.swift in Sources */,
 				F6E7BCCBB6A5C9C55B85ED10 /* DoseStore+Sync.swift in Sources */,
 				0919BF63201C820BDA9C06E9 /* DoseStore+Wellness.swift in Sources */,
 				014CBBF9228D50819E647998 /* DoseStore.swift in Sources */,
@@ -317,6 +324,7 @@
 				1A93D91691F2FE415FBF9ECC /* HealthKitService.swift in Sources */,
 				828CE4AF8A3C31BE89464092 /* HomeCards.swift in Sources */,
 				5DFB5D1C62E870304F0E8F44 /* HomeView.swift in Sources */,
+				72255078463C516A197374A8 /* ICloudSyncClient.swift in Sources */,
 				F35F1D21165568F2CDCC0578 /* KeychainTokenStore.swift in Sources */,
 				9F855490ED5CDE1D7EA06089 /* MedicationDetailView.swift in Sources */,
 				1844D6AFA3D25D69C5EAE6FC /* NotificationScheduler.swift in Sources */,
@@ -365,6 +373,7 @@
 				CODE_SIGN_ENTITLEMENTS = DoesTrack/Supporting/DoesTrack.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				DEVELOPMENT_TEAM = 7GXNZJMGPD;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				INFOPLIST_FILE = DoesTrack/Supporting/Info.plist;
@@ -372,9 +381,14 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.gp.doestrack;
 				PRODUCT_NAME = DoesTrack;
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -420,6 +434,7 @@
 				CODE_SIGN_ENTITLEMENTS = DoesTrack/Supporting/DoesTrack.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				DEVELOPMENT_TEAM = 7GXNZJMGPD;
 				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -428,9 +443,14 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.gp.doestrack;
 				PRODUCT_NAME = DoesTrack;
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -488,6 +508,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -548,6 +569,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;

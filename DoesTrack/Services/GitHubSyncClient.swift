@@ -96,7 +96,7 @@ struct GitHubSyncClient {
             sha: sha
         )
 
-        var request = try makeRequest(settings: settings, token: token)
+        var request = try makeRequest(settings: settings, token: token, includesRefQuery: false)
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(requestBody)
@@ -125,7 +125,7 @@ struct GitHubSyncClient {
     }
 
     private func fetchContents(settings: GitHubSyncSettings, token: String) async throws -> GitHubContentsResponse {
-        var request = try makeRequest(settings: settings, token: token)
+        var request = try makeRequest(settings: settings, token: token, includesRefQuery: true)
         request.httpMethod = "GET"
 
         let (data, response) = try await session.data(for: request)
@@ -133,7 +133,7 @@ struct GitHubSyncClient {
         return try JSONDecoder().decode(GitHubContentsResponse.self, from: data)
     }
 
-    private func makeRequest(settings: GitHubSyncSettings, token: String) throws -> URLRequest {
+    private func makeRequest(settings: GitHubSyncSettings, token: String, includesRefQuery: Bool) throws -> URLRequest {
         guard settings.isRepositoryConfigured else {
             throw GitHubSyncError.missingRepositorySettings
         }
@@ -149,7 +149,7 @@ struct GitHubSyncClient {
 
         return try makeAuthenticatedRequest(
             path: "/repos/\(settings.owner)/\(settings.repository)/contents/\(encodedPath)",
-            queryItems: [URLQueryItem(name: "ref", value: settings.branch)],
+            queryItems: includesRefQuery ? [URLQueryItem(name: "ref", value: settings.branch)] : [],
             token: token
         )
     }
@@ -191,7 +191,10 @@ struct GitHubSyncClient {
         case 404:
             throw GitHubSyncError.notFound
         case 409:
-            throw GitHubSyncError.conflict
+            if let apiError = try? JSONDecoder().decode(GitHubAPIError.self, from: data) {
+                throw GitHubSyncError.conflict(apiError.message)
+            }
+            throw GitHubSyncError.conflict("GitHub reported a file conflict.")
         default:
             if let apiError = try? JSONDecoder().decode(GitHubAPIError.self, from: data) {
                 throw GitHubSyncError.api(apiError.message)
@@ -292,7 +295,7 @@ enum GitHubSyncError: LocalizedError, Equatable {
     case invalidRemoteContent
     case unauthorized
     case notFound
-    case conflict
+    case conflict(String)
     case api(String)
 
     var errorDescription: String? {
@@ -311,8 +314,8 @@ enum GitHubSyncError: LocalizedError, Equatable {
             return "GitHub rejected the token or repository access."
         case .notFound:
             return "The sync file was not found in the repository."
-        case .conflict:
-            return "GitHub reported a file conflict. Pull and merge, then push again."
+        case .conflict(let message):
+            return "\(message) Pull and merge, then try again."
         case .api(let message):
             return message
         }

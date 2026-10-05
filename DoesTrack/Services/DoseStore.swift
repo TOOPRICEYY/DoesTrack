@@ -6,16 +6,24 @@ import UserNotifications
 final class DoseStore: ObservableObject {
     @Published var medications: [Medication] = [] {
         didSet {
+            markICloudDataChanged()
             save()
             scheduleNotificationRefresh()
         }
     }
 
     @Published var logs: [DoseLog] = [] {
-        didSet { save() }
+        didSet {
+            markICloudDataChanged()
+            save()
+        }
     }
 
     @Published var syncSettings = GitHubSyncSettings() {
+        didSet { save() }
+    }
+
+    @Published var iCloudSyncSettings = ICloudSyncSettings() {
         didSet { save() }
     }
 
@@ -24,31 +32,52 @@ final class DoseStore: ObservableObject {
     }
 
     @Published var symptomCheckIns: [SymptomCheckIn] = [] {
-        didSet { save() }
+        didSet {
+            markICloudDataChanged()
+            save()
+        }
     }
 
     @Published var supplements: [Supplement] = [] {
-        didSet { save() }
+        didSet {
+            markICloudDataChanged()
+            save()
+        }
     }
 
     @Published var supplementLogs: [SupplementLog] = [] {
-        didSet { save() }
+        didSet {
+            markICloudDataChanged()
+            save()
+        }
     }
 
     @Published var labResults: [LabResult] = [] {
-        didSet { save() }
+        didSet {
+            markICloudDataChanged()
+            save()
+        }
     }
 
     @Published var hydrationDays: [HydrationDay] = [] {
-        didSet { save() }
+        didSet {
+            markICloudDataChanged()
+            save()
+        }
     }
 
     @Published var cycles: [ProtocolCycle] = [] {
-        didSet { save() }
+        didSet {
+            markICloudDataChanged()
+            save()
+        }
     }
 
     @Published var reconPlans: [ReconPlan] = [] {
-        didSet { save() }
+        didSet {
+            markICloudDataChanged()
+            save()
+        }
     }
 
     @Published var chatMessages: [ChatMessage] = [] {
@@ -56,18 +85,31 @@ final class DoseStore: ObservableObject {
     }
 
     @Published var batches: [MedicationBatch] = [] {
-        didSet { save() }
+        didSet {
+            markICloudDataChanged()
+            save()
+        }
+    }
+
+    @Published var syncTombstones: [SyncTombstone] = [] {
+        didSet {
+            markICloudDataChanged()
+            save()
+        }
     }
 
     @Published var storageError: String?
     @Published var notificationAuthorization: UNAuthorizationStatus = .notDetermined
     @Published var lastAutoSyncError: String?
+    @Published var lastICloudSyncError: String?
 
     private let fileURL: URL
     private let calendar = Calendar.doseTrackCalendar
     private var isLoading = false
     private var hasPendingSave = false
     private var hasPendingNotificationRefresh = false
+    var isICloudSyncInFlight = false
+    var isApplyingICloudData = false
     private let notificationScheduler = NotificationScheduler()
     private static let markedAllReadKey = "doseTrackNotificationsMarkedAllAt"
 
@@ -103,6 +145,7 @@ final class DoseStore: ObservableObject {
             medications = database.medications.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
             logs = database.logs.sorted { $0.scheduledAt > $1.scheduledAt }
             syncSettings = database.syncSettings
+            iCloudSyncSettings = database.iCloudSyncSettings
             healthMetrics = database.healthMetrics
             symptomCheckIns = database.symptomCheckIns.sorted { $0.createdAt > $1.createdAt }
             supplements = database.supplements.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
@@ -113,6 +156,7 @@ final class DoseStore: ObservableObject {
             reconPlans = database.reconPlans.sorted { $0.createdAt > $1.createdAt }
             chatMessages = database.chatMessages.sorted { $0.createdAt < $1.createdAt }
             batches = database.batches.sorted { $0.purchaseDate > $1.purchaseDate }
+            syncTombstones = database.syncTombstones
             storageError = nil
         } catch {
             storageError = "Unable to load DoesTrack data: \(error.localizedDescription)"
@@ -132,6 +176,13 @@ final class DoseStore: ObservableObject {
         }
     }
 
+    private func markICloudDataChanged() {
+        guard !isLoading, !isApplyingICloudData, iCloudSyncSettings.isEnabled else { return }
+        var settings = iCloudSyncSettings
+        settings.lastLocalChangeAt = Date()
+        iCloudSyncSettings = settings
+    }
+
     func persistNow() {
         do {
             let encoder = JSONEncoder()
@@ -141,6 +192,7 @@ final class DoseStore: ObservableObject {
                 medications: medications,
                 logs: logs,
                 syncSettings: syncSettings,
+                iCloudSyncSettings: iCloudSyncSettings,
                 healthMetrics: healthMetrics,
                 symptomCheckIns: symptomCheckIns,
                 supplements: supplements,
@@ -150,7 +202,8 @@ final class DoseStore: ObservableObject {
                 cycles: cycles,
                 reconPlans: reconPlans,
                 chatMessages: chatMessages,
-                batches: batches
+                batches: batches,
+                syncTombstones: syncTombstones
             )
             let data = try encoder.encode(database)
             try data.write(to: fileURL, options: [.atomic])
@@ -197,17 +250,23 @@ final class DoseStore: ObservableObject {
     func deleteMedications(at offsets: IndexSet) {
         let visible = medications.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         let ids = offsets.map { visible[$0].id }
+        recordSyncTombstones(recordType: "medication", recordIDs: ids)
+        recordSyncTombstones(recordType: "doseLog", recordIDs: logs.filter { ids.contains($0.medicationID) }.map(\.id))
         medications.removeAll { ids.contains($0.id) }
         logs.removeAll { ids.contains($0.medicationID) }
     }
 
     func deleteMedication(_ medication: Medication) {
+        recordSyncTombstone(recordType: "medication", recordID: medication.id)
+        recordSyncTombstones(recordType: "doseLog", recordIDs: logs.filter { $0.medicationID == medication.id }.map(\.id))
         medications.removeAll { $0.id == medication.id }
         logs.removeAll { $0.medicationID == medication.id }
     }
 
     func deleteStack(named stackName: String) {
         let ids = medications.filter { $0.stackName == stackName }.map(\.id)
+        recordSyncTombstones(recordType: "medication", recordIDs: ids)
+        recordSyncTombstones(recordType: "doseLog", recordIDs: logs.filter { ids.contains($0.medicationID) }.map(\.id))
         medications.removeAll { ids.contains($0.id) }
         logs.removeAll { ids.contains($0.medicationID) }
     }
@@ -276,6 +335,9 @@ final class DoseStore: ObservableObject {
         if let oldStackName {
             let oldIDs = medications.filter { $0.stackName == oldStackName }.map(\.id)
             let newIDs = Set(draftMedications.map(\.id))
+            let removedIDs = oldIDs.filter { !newIDs.contains($0) }
+            recordSyncTombstones(recordType: "medication", recordIDs: removedIDs)
+            recordSyncTombstones(recordType: "doseLog", recordIDs: logs.filter { removedIDs.contains($0.medicationID) }.map(\.id))
             medications.removeAll { oldIDs.contains($0.id) }
             logs.removeAll { oldIDs.contains($0.medicationID) && !newIDs.contains($0.medicationID) }
         }
@@ -496,6 +558,7 @@ final class DoseStore: ObservableObject {
 
     /// Removes a log entirely and refunds whatever it had drawn.
     func deleteLog(_ log: DoseLog) {
+        recordSyncTombstone(recordType: "doseLog", recordID: log.id)
         logs.removeAll { $0.id == log.id }
 
         reconcileBatch(previousLog: log, newBatchID: nil, newAmount: 0, newStatus: .skipped)
@@ -533,7 +596,8 @@ final class DoseStore: ObservableObject {
             hydrationDays: hydrationDays,
             cycles: cycles,
             reconPlans: reconPlans,
-            batches: batches
+            batches: batches,
+            syncTombstones: syncTombstones
         )
     }
 
@@ -548,6 +612,7 @@ final class DoseStore: ObservableObject {
         cycles = backup.cycles
         reconPlans = backup.reconPlans.sorted { $0.createdAt > $1.createdAt }
         batches = backup.batches.sorted { $0.purchaseDate > $1.purchaseDate }
+        syncTombstones = backup.syncTombstones
     }
 
     func updateHealthMetrics(_ snapshot: HealthMetricsSnapshot) {
@@ -567,32 +632,38 @@ final class DoseStore: ObservableObject {
         symptomCheckIns.max { $0.createdAt < $1.createdAt }
     }
 
-    func mergeBackup(_ backup: DoseBackup) {
-        var medicationByID = Dictionary(uniqueKeysWithValues: medications.map { ($0.id, $0) })
-        for remoteMedication in backup.medications {
-            if let local = medicationByID[remoteMedication.id] {
-                medicationByID[remoteMedication.id] = remoteMedication.updatedAt > local.updatedAt ? remoteMedication : local
-            } else {
+    func mergeBackup(_ backup: DoseBackup, preferRemote: Bool = false) {
+        let tombstones = Self.mergeTombstones(local: syncTombstones, remote: backup.syncTombstones)
+        syncTombstones = tombstones
+
+        var medicationByID = Dictionary(uniqueKeysWithValues: medications
+            .filter { !Self.isDeleted(recordType: "medication", recordID: $0.id, tombstones: tombstones) }
+            .map { ($0.id, $0) })
+        for remoteMedication in backup.medications where !Self.isDeleted(recordType: "medication", recordID: remoteMedication.id, tombstones: tombstones) {
+            if preferRemote || medicationByID[remoteMedication.id] == nil {
                 medicationByID[remoteMedication.id] = remoteMedication
             }
         }
 
-        var logByID = Dictionary(uniqueKeysWithValues: logs.map { ($0.id, $0) })
-        for remoteLog in backup.logs {
-            if let local = logByID[remoteLog.id] {
-                let localDate = local.takenAt ?? local.scheduledAt
-                let remoteDate = remoteLog.takenAt ?? remoteLog.scheduledAt
-                logByID[remoteLog.id] = remoteDate > localDate ? remoteLog : local
-            } else {
+        var logByID = Dictionary(uniqueKeysWithValues: logs
+            .filter {
+                !Self.isDeleted(recordType: "doseLog", recordID: $0.id, tombstones: tombstones) &&
+                    !Self.isDeleted(recordType: "medication", recordID: $0.medicationID, tombstones: tombstones)
+            }
+            .map { ($0.id, $0) })
+        for remoteLog in backup.logs
+        where !Self.isDeleted(recordType: "doseLog", recordID: remoteLog.id, tombstones: tombstones) &&
+            !Self.isDeleted(recordType: "medication", recordID: remoteLog.medicationID, tombstones: tombstones) {
+            if preferRemote || logByID[remoteLog.id] == nil {
                 logByID[remoteLog.id] = remoteLog
             }
         }
 
-        var checkInByID = Dictionary(uniqueKeysWithValues: symptomCheckIns.map { ($0.id, $0) })
-        for remoteCheckIn in backup.symptomCheckIns {
-            if let local = checkInByID[remoteCheckIn.id] {
-                checkInByID[remoteCheckIn.id] = remoteCheckIn.createdAt > local.createdAt ? remoteCheckIn : local
-            } else {
+        var checkInByID = Dictionary(uniqueKeysWithValues: symptomCheckIns
+            .filter { !Self.isDeleted(recordType: "symptomCheckIn", recordID: $0.id, tombstones: tombstones) }
+            .map { ($0.id, $0) })
+        for remoteCheckIn in backup.symptomCheckIns where !Self.isDeleted(recordType: "symptomCheckIn", recordID: remoteCheckIn.id, tombstones: tombstones) {
+            if preferRemote || checkInByID[remoteCheckIn.id] == nil {
                 checkInByID[remoteCheckIn.id] = remoteCheckIn
             }
         }
@@ -600,36 +671,75 @@ final class DoseStore: ObservableObject {
         medications = medicationByID.values.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         logs = logByID.values.sorted { $0.scheduledAt > $1.scheduledAt }
         symptomCheckIns = checkInByID.values.sorted { $0.createdAt > $1.createdAt }
-        supplements = Self.mergeByID(local: supplements, remote: backup.supplements, newer: { $0.createdAt })
+        supplements = Self.mergeByID(local: supplements.filter { !Self.isDeleted(recordType: "supplement", recordID: $0.id, tombstones: tombstones) }, remote: backup.supplements.filter { !Self.isDeleted(recordType: "supplement", recordID: $0.id, tombstones: tombstones) }, preferRemote: preferRemote)
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-        supplementLogs = Self.mergeByID(local: supplementLogs, remote: backup.supplementLogs, newer: { $0.takenAt })
-        labResults = Self.mergeByID(local: labResults, remote: backup.labResults, newer: { $0.sampledAt })
+        supplementLogs = Self.mergeByID(local: supplementLogs.filter {
+            !Self.isDeleted(recordType: "supplementLog", recordID: $0.id, tombstones: tombstones) &&
+                !Self.isDeleted(recordType: "supplement", recordID: $0.supplementID, tombstones: tombstones)
+        }, remote: backup.supplementLogs.filter {
+            !Self.isDeleted(recordType: "supplementLog", recordID: $0.id, tombstones: tombstones) &&
+                !Self.isDeleted(recordType: "supplement", recordID: $0.supplementID, tombstones: tombstones)
+        }, preferRemote: preferRemote)
+        labResults = Self.mergeByID(local: labResults.filter { !Self.isDeleted(recordType: "labResult", recordID: $0.id, tombstones: tombstones) }, remote: backup.labResults.filter { !Self.isDeleted(recordType: "labResult", recordID: $0.id, tombstones: tombstones) }, preferRemote: preferRemote)
             .sorted { $0.sampledAt > $1.sampledAt }
-        cycles = Self.mergeByID(local: cycles, remote: backup.cycles, newer: { $0.startDate })
-        reconPlans = Self.mergeByID(local: reconPlans, remote: backup.reconPlans, newer: { $0.createdAt })
+        cycles = Self.mergeByID(local: cycles.filter { !Self.isDeleted(recordType: "protocolCycle", recordID: $0.id, tombstones: tombstones) }, remote: backup.cycles.filter { !Self.isDeleted(recordType: "protocolCycle", recordID: $0.id, tombstones: tombstones) }, preferRemote: preferRemote)
+        reconPlans = Self.mergeByID(local: reconPlans.filter { !Self.isDeleted(recordType: "reconPlan", recordID: $0.id, tombstones: tombstones) }, remote: backup.reconPlans.filter { !Self.isDeleted(recordType: "reconPlan", recordID: $0.id, tombstones: tombstones) }, preferRemote: preferRemote)
             .sorted { $0.createdAt > $1.createdAt }
-        hydrationDays = mergeHydration(remote: backup.hydrationDays)
-        batches = Self.mergeByID(local: batches, remote: backup.batches, newer: { $0.updatedAt })
+        hydrationDays = mergeHydration(remote: backup.hydrationDays, preferRemote: preferRemote)
+        batches = Self.mergeByID(local: batches.filter { !Self.isDeleted(recordType: "batch", recordID: $0.id, tombstones: tombstones) }, remote: backup.batches.filter { !Self.isDeleted(recordType: "batch", recordID: $0.id, tombstones: tombstones) }, preferRemote: preferRemote)
             .sorted { $0.purchaseDate > $1.purchaseDate }
     }
 
-    private static func mergeByID<T: Identifiable>(local: [T], remote: [T], newer: (T) -> Date) -> [T] {
+    private static func mergeByID<T: Identifiable>(local: [T], remote: [T], preferRemote: Bool) -> [T] {
         var byID = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
         for item in remote {
-            if let existing = byID[item.id] {
-                byID[item.id] = newer(item) > newer(existing) ? item : existing
-            } else {
+            if preferRemote || byID[item.id] == nil {
                 byID[item.id] = item
             }
         }
         return Array(byID.values)
     }
 
-    private func mergeHydration(remote: [HydrationDay]) -> [HydrationDay] {
+    func recordSyncTombstone(recordType: String, recordID: UUID) {
+        recordSyncTombstones(recordType: recordType, recordIDs: [recordID])
+    }
+
+    func recordSyncTombstones(recordType: String, recordIDs: [UUID]) {
+        let deletedAt = Date()
+        var byID = Dictionary(uniqueKeysWithValues: syncTombstones.map { ($0.id, $0) })
+        for recordID in recordIDs {
+            let tombstone = SyncTombstone(recordType: recordType, recordID: recordID, deletedAt: deletedAt)
+            if let existing = byID[tombstone.id], existing.deletedAt > deletedAt {
+                continue
+            }
+            byID[tombstone.id] = tombstone
+        }
+        syncTombstones = Array(byID.values).sorted { $0.deletedAt > $1.deletedAt }
+    }
+
+    private static func mergeTombstones(local: [SyncTombstone], remote: [SyncTombstone]) -> [SyncTombstone] {
+        var byID = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
+        for tombstone in remote {
+            if let existing = byID[tombstone.id], existing.deletedAt >= tombstone.deletedAt {
+                continue
+            }
+            byID[tombstone.id] = tombstone
+        }
+        return Array(byID.values).sorted { $0.deletedAt > $1.deletedAt }
+    }
+
+    private static func isDeleted(recordType: String, recordID: UUID, tombstones: [SyncTombstone]) -> Bool {
+        tombstones.contains { $0.recordType == recordType && $0.recordID == recordID }
+    }
+
+    private func mergeHydration(remote: [HydrationDay], preferRemote: Bool) -> [HydrationDay] {
         var byDay = Dictionary(uniqueKeysWithValues: hydrationDays.map { ($0.day, $0) })
         for entry in remote {
             let existing = byDay[entry.day]?.ounces ?? 0
-            byDay[entry.day] = HydrationDay(day: entry.day, ounces: max(existing, entry.ounces))
+            byDay[entry.day] = HydrationDay(
+                day: entry.day,
+                ounces: preferRemote ? entry.ounces : max(existing, entry.ounces)
+            )
         }
         return byDay.values.sorted { $0.day > $1.day }
     }

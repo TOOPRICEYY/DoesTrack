@@ -203,7 +203,11 @@ private struct NotificationSettingsView: View {
         case .authorized, .provisional, .ephemeral:
             return "Dose reminders are scheduled from your active medication schedules."
         case .denied:
+#if targetEnvironment(macCatalyst)
+            return "Permission was denied. Enable notifications for DoesTrack in System Settings."
+#else
             return "Permission was denied. Enable notifications for DoesTrack in iOS Settings."
+#endif
         default:
             return "Enable reminders to get notified when a dose is due."
         }

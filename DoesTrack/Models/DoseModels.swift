@@ -162,6 +162,14 @@ struct DoseSchedule: Identifiable, Codable, Equatable {
 
         return daysOfWeek.contains(weekday)
     }
+
+    func isShiftable(on date: Date) -> Bool {
+        let isStillRunning = endDate.map { $0.startOfDay >= date.startOfDay } ?? true
+        let isIntervalSchedule = (intervalDays ?? 0) > 1
+        let isDailySchedule = intervalDays == nil && daysOfWeek == Set(Weekday.allCases)
+        let isStandardWeeklySchedule = intervalDays == nil && (daysOfWeek.count == 1 || daysOfWeek.count == 2)
+        return isStillRunning && (isIntervalSchedule || isDailySchedule || isStandardWeeklySchedule)
+    }
 }
 
 struct Medication: Identifiable, Codable, Equatable {
@@ -423,6 +431,32 @@ struct GitHubSyncSettings: Codable, Equatable {
     }
 }
 
+struct ICloudSyncSettings: Codable, Equatable {
+    var isEnabled: Bool
+    var lastSyncedAt: Date?
+    var lastLocalChangeAt: Date?
+
+    init(isEnabled: Bool = false, lastSyncedAt: Date? = nil, lastLocalChangeAt: Date? = nil) {
+        self.isEnabled = isEnabled
+        self.lastSyncedAt = lastSyncedAt
+        self.lastLocalChangeAt = lastLocalChangeAt
+    }
+}
+
+struct SyncTombstone: Identifiable, Codable, Equatable {
+    var recordType: String
+    var recordID: UUID
+    var deletedAt: Date
+
+    var id: String { "\(recordType):\(recordID.uuidString)" }
+
+    init(recordType: String, recordID: UUID, deletedAt: Date = Date()) {
+        self.recordType = recordType
+        self.recordID = recordID
+        self.deletedAt = deletedAt
+    }
+}
+
 struct HealthMetricSample: Codable, Equatable {
     var value: Double
     var unit: String
@@ -622,6 +656,7 @@ struct DoseDatabase: Codable, Equatable {
     var medications: [Medication]
     var logs: [DoseLog]
     var syncSettings: GitHubSyncSettings
+    var iCloudSyncSettings: ICloudSyncSettings
     var healthMetrics: HealthMetricsSnapshot
     var symptomCheckIns: [SymptomCheckIn]
     var supplements: [Supplement]
@@ -632,11 +667,13 @@ struct DoseDatabase: Codable, Equatable {
     var reconPlans: [ReconPlan]
     var chatMessages: [ChatMessage]
     var batches: [MedicationBatch]
+    var syncTombstones: [SyncTombstone]
 
     init(
         medications: [Medication],
         logs: [DoseLog],
         syncSettings: GitHubSyncSettings,
+        iCloudSyncSettings: ICloudSyncSettings = ICloudSyncSettings(),
         healthMetrics: HealthMetricsSnapshot = .empty,
         symptomCheckIns: [SymptomCheckIn] = [],
         supplements: [Supplement] = [],
@@ -646,11 +683,13 @@ struct DoseDatabase: Codable, Equatable {
         cycles: [ProtocolCycle] = [],
         reconPlans: [ReconPlan] = [],
         chatMessages: [ChatMessage] = [],
-        batches: [MedicationBatch] = []
+        batches: [MedicationBatch] = [],
+        syncTombstones: [SyncTombstone] = []
     ) {
         self.medications = medications
         self.logs = logs
         self.syncSettings = syncSettings
+        self.iCloudSyncSettings = iCloudSyncSettings
         self.healthMetrics = healthMetrics
         self.symptomCheckIns = symptomCheckIns
         self.supplements = supplements
@@ -661,6 +700,7 @@ struct DoseDatabase: Codable, Equatable {
         self.reconPlans = reconPlans
         self.chatMessages = chatMessages
         self.batches = batches
+        self.syncTombstones = syncTombstones
     }
 
     init(from decoder: Decoder) throws {
@@ -668,6 +708,7 @@ struct DoseDatabase: Codable, Equatable {
         medications = try container.decode([Medication].self, forKey: .medications)
         logs = try container.decode([DoseLog].self, forKey: .logs)
         syncSettings = try container.decodeIfPresent(GitHubSyncSettings.self, forKey: .syncSettings) ?? GitHubSyncSettings()
+        iCloudSyncSettings = try container.decodeIfPresent(ICloudSyncSettings.self, forKey: .iCloudSyncSettings) ?? ICloudSyncSettings()
         healthMetrics = try container.decodeIfPresent(HealthMetricsSnapshot.self, forKey: .healthMetrics) ?? .empty
         symptomCheckIns = try container.decodeIfPresent([SymptomCheckIn].self, forKey: .symptomCheckIns) ?? []
         supplements = try container.decodeIfPresent([Supplement].self, forKey: .supplements) ?? []
@@ -678,6 +719,7 @@ struct DoseDatabase: Codable, Equatable {
         reconPlans = try container.decodeIfPresent([ReconPlan].self, forKey: .reconPlans) ?? []
         chatMessages = try container.decodeIfPresent([ChatMessage].self, forKey: .chatMessages) ?? []
         batches = try container.decodeIfPresent([MedicationBatch].self, forKey: .batches) ?? []
+        syncTombstones = try container.decodeIfPresent([SyncTombstone].self, forKey: .syncTombstones) ?? []
     }
 }
 
@@ -694,10 +736,11 @@ struct DoseBackup: Codable, Equatable {
     var cycles: [ProtocolCycle]
     var reconPlans: [ReconPlan]
     var batches: [MedicationBatch]
+    var syncTombstones: [SyncTombstone]
 
     // Chat messages are deliberately excluded: the Pulse chat promises
     // "stored on device only".
-    static let currentSchemaVersion = 3
+    static let currentSchemaVersion = 4
 
     init(
         schemaVersion: Int,
@@ -711,7 +754,8 @@ struct DoseBackup: Codable, Equatable {
         hydrationDays: [HydrationDay] = [],
         cycles: [ProtocolCycle] = [],
         reconPlans: [ReconPlan] = [],
-        batches: [MedicationBatch] = []
+        batches: [MedicationBatch] = [],
+        syncTombstones: [SyncTombstone] = []
     ) {
         self.schemaVersion = schemaVersion
         self.exportedAt = exportedAt
@@ -725,6 +769,7 @@ struct DoseBackup: Codable, Equatable {
         self.cycles = cycles
         self.reconPlans = reconPlans
         self.batches = batches
+        self.syncTombstones = syncTombstones
     }
 
     init(from decoder: Decoder) throws {
@@ -741,6 +786,7 @@ struct DoseBackup: Codable, Equatable {
         cycles = try container.decodeIfPresent([ProtocolCycle].self, forKey: .cycles) ?? []
         reconPlans = try container.decodeIfPresent([ReconPlan].self, forKey: .reconPlans) ?? []
         batches = try container.decodeIfPresent([MedicationBatch].self, forKey: .batches) ?? []
+        syncTombstones = try container.decodeIfPresent([SyncTombstone].self, forKey: .syncTombstones) ?? []
     }
 }
 

@@ -1,6 +1,6 @@
 # DoesTrack
 
-DoesTrack is a SwiftUI iOS protocol and medication tracker built for local-first use with optional GitHub repository sync. The current UI is modeled from the screenshots in `model_app_screenshots`.
+DoesTrack is a SwiftUI iPhone, iPad, and Mac protocol and medication tracker built for local-first use with optional iCloud and GitHub repository sync. The current UI is modeled from the screenshots in `model_app_screenshots`.
 
 ## Features
 
@@ -22,28 +22,40 @@ DoesTrack is a SwiftUI iOS protocol and medication tracker built for local-first
 - Local notification scheduling that runs automatically: reminders re-sync on launch and whenever medications change (once permission is granted from Settings > Notifications), capped below iOS's 64 pending-request limit.
 - Monthly expense estimates computed from tracked per-dose costs and the upcoming 30-day schedule.
 - GitHub sync using the GitHub Contents API to push and merge a JSON backup file in a repository.
+- Private iCloud sync across iPhone, iPad, and Mac, with automatic launch/foreground/background sync, manual sync, conflict retry, and deletion propagation.
 
 ## Pharmacokinetic Modelling
 
-Open Pulse > PK Model to view educational relative exposure curves for supported active medications. The model sums scheduled and recorded dose events with first-order elimination:
+Open Pulse > PK Model to view educational relative exposure curves for supported active medications. The model sums scheduled and recorded dose events with first-order absorption and first-order elimination:
 
 ```text
-relative exposure = dose * availability multiplier * exp(-ln(2) * elapsed days / half-life days)
+relative exposure = dose * scale * ka / (ka - ke) * (exp(-ke * elapsed days) - exp(-ka * elapsed days))
+ke = ln(2) / elimination half-life days
+ka = ln(2) / absorption half-life days
 ```
 
 Bundled defaults currently cover:
 
-- Tirzepatide: 5-day elimination half-life and 80% subcutaneous bioavailability from the current [DailyMed Mounjaro label](https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=d2d7da5d-ad07-4228-955f-cf7e355c8cc0).
-- hCG: 32-33 hour elimination half-life from [Mannaerts et al. 1998](https://pubmed.ncbi.nlm.nih.gov/9688371/), with route comparison support from [Saal et al. 1991](https://pubmed.ncbi.nlm.nih.gov/1712735/).
-- Testosterone cypionate: an explicitly-labelled effective visualization half-life derived from [Nankin 1987](https://pubmed.ncbi.nlm.nih.gov/3595893/) observed post-injection serum timing, not a measured terminal half-life or serum testosterone prediction.
+- Tirzepatide: 5-day elimination half-life, 80% subcutaneous bioavailability, and 8-72 hour Tmax from the current [DailyMed Mounjaro label](https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=d2d7da5d-ad07-4228-955f-cf7e355c8cc0).
+- hCG: 32-33 hour elimination half-life and about 20 hour peak timing from [Mannaerts et al. 1998](https://pubmed.ncbi.nlm.nih.gov/9688371/), with route comparison support from [Saal et al. 1991](https://pubmed.ncbi.nlm.nih.gov/1712735/).
+- BPC-157: preclinical rat/dog IV and IM short half-life and rapid IM peak timing from [Wu et al. 2022](https://doi.org/10.3389/fphar.2022.1026182). No validated human subcutaneous PK or absolute subcutaneous bioavailability was found, so this is a rough washout visualization only.
+- Testosterone cypionate: an explicitly-labelled effective depot visualization model derived from [Nankin 1987](https://pubmed.ncbi.nlm.nih.gov/3595893/) observed post-injection serum timing and [DailyMed Depo-Testosterone](https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=cfbb53d4-b868-4a28-8436-f9112eb01c39) depot-label context, not a measured terminal half-life or serum testosterone prediction.
 
-This feature is for tracking and visualization only. It does not estimate clinical serum concentration, optimize dosing, or replace labs or clinician guidance.
+This feature is for tracking and visualization only. Absorption values are display assumptions or fits to published peak timing where direct route-specific parameters are unavailable. It does not estimate clinical serum concentration, optimize dosing, or replace labs or clinician guidance.
 
 ## GitHub Sync
 
 Create a fine-grained GitHub personal access token with repository contents read/write access for the target repo. In the app, open Profile > App Settings > Data Management, sign in with the token, then choose an accessible repository from the repository picker. DoesTrack fills the owner, repo, and default branch from the selected repo; the backup file path defaults to `DoesTrack/doestrack-sync.json` and can be edited.
 
-The token is stored in the iOS Keychain. Sync writes a JSON backup through the GitHub Contents API rather than shelling out to `git`, which is the practical path on iOS. Manual owner/repo/branch fields remain available under advanced settings for fallback setup.
+The token is stored in Keychain. Sync writes a JSON backup through the GitHub Contents API rather than shelling out to `git`, which works consistently on iPhone, iPad, and Mac. Manual owner/repo/branch fields remain available under advanced settings for fallback setup.
+
+## iCloud Sync
+
+Open Profile > App Settings > Data Management and turn on **Sync with iCloud**. DoesTrack stores its sync backup as an asset in the user's private CloudKit database and synchronizes on launch, when returning to the foreground, and when moving to the background. A manual **Sync iCloud Now** action is also available.
+
+The synced backup includes medication protocols, dose logs, symptoms, supplements, labs, hydration, cycles, reconstitution plans, batches, and deletion tombstones. Apple Health snapshots and Pulse chat stay on the device, matching their existing privacy behavior.
+
+The app uses the `iCloud.com.gp.doestrack` container. Before running a signed build, add that container to the App ID for `com.gp.doestrack` in the Apple Developer portal and enable CloudKit for both the iOS and Mac Catalyst provisioning profiles. Deploy the development CloudKit schema to production before distributing the app.
 
 ## Build
 
@@ -59,6 +71,14 @@ Build for a physical iOS target or generic device:
 xcodebuild -project DoesTrack.xcodeproj -scheme DoesTrack -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
 ```
 
+Build the universal Mac Catalyst app (macOS 14 or newer):
+
+```sh
+xcodebuild -project DoesTrack.xcodeproj -scheme DoesTrack -destination 'generic/platform=macOS,variant=Mac Catalyst' CODE_SIGNING_ALLOWED=NO build
+```
+
+In Xcode, select the **DoesTrack** scheme and choose **My Mac (Mac Catalyst)** to run the Mac app. The Catalyst destination intentionally reuses the iOS SwiftUI target so the full feature set remains available on Mac.
+
 The app icon asset catalog is included under `DoesTrack/Supporting/Assets.xcassets` and `AppIcon` is configured as the app icon.
 
 ## TestFlight Deployment
@@ -66,6 +86,7 @@ The app icon asset catalog is included under `DoesTrack/Supporting/Assets.xcasse
 The project is configured for App Store Connect distribution with:
 
 - iOS deployment target 17.0.
+- Mac Catalyst deployment target macOS 14.0, using the same bundle identifier for universal purchase and shared CloudKit data.
 - Bundle identifier `com.gp.doestrack`.
 - Marketing version `1.0` and build number `1` from `project.yml`.
 - Automatic signing style with Apple Developer Team ID `7GXNZJMGPD`.
@@ -79,7 +100,7 @@ Before uploading, confirm these publisher-specific values:
 - Change `PRODUCT_BUNDLE_IDENTIFIER` in `project.yml` if `com.gp.doestrack` is not registered to your Apple Developer account.
 - Change `DEVELOPMENT_TEAM` in `project.yml` and `teamID` in `Config/ExportOptions-TestFlight.plist` if you use a different Apple Developer team.
 - Increment `CURRENT_PROJECT_VERSION` in `project.yml` for every TestFlight upload after the first accepted build.
-- Confirm the App Store Connect app privacy questionnaire. DoesTrack stores medication data locally and can optionally send a backup JSON file to GitHub when the user configures sync; the GitHub token is stored in Keychain.
+- Confirm the App Store Connect app privacy questionnaire. DoesTrack stores medication data locally and can optionally store a backup in the user's private iCloud database or send one to GitHub; the GitHub token is stored in Keychain.
 - Confirm export compliance if the app later adds custom encryption beyond Apple's platform crypto, HTTPS, or Keychain usage.
 
 Regenerate the project after changing `project.yml`:

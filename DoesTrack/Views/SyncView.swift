@@ -14,6 +14,8 @@ struct SyncView: View {
     @State private var showsToken = false
     @State private var showsRepositoryPicker = false
     @State private var showsManualSettings = false
+    @State private var isICloudWorking = false
+    @State private var iCloudStatusMessage = ""
 
     private var canSignIn: Bool {
         !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isWorking
@@ -32,6 +34,7 @@ struct SyncView: View {
     var body: some View {
         NavigationStack {
             Form {
+                iCloudSection
                 accountSection
                 repositorySection
                 autoSyncSection
@@ -50,6 +53,54 @@ struct SyncView: View {
             .onAppear {
                 settings = store.syncSettings
                 token = KeychainTokenStore.loadToken()
+            }
+        }
+    }
+
+    private var iCloudSection: some View {
+        Section("iCloud") {
+            Toggle("Sync with iCloud", isOn: Binding(
+                get: { store.iCloudSyncSettings.isEnabled },
+                set: { enabled in
+                    store.setICloudSync(enabled: enabled)
+                    if enabled {
+                        syncWithICloud()
+                    } else {
+                        iCloudStatusMessage = "iCloud sync is off. Local data is unchanged."
+                    }
+                }
+            ))
+
+            Text("Keeps medications, dose history, supplements, labs, cycles, hydration, plans, and batches in your private iCloud database across iPhone, iPad, and Mac. Health snapshots and Pulse chat remain on-device.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            Button {
+                syncWithICloud()
+            } label: {
+                if isICloudWorking {
+                    HStack {
+                        ProgressView()
+                        Text("Syncing with iCloud")
+                    }
+                } else {
+                    Label("Sync iCloud Now", systemImage: "icloud.and.arrow.up")
+                }
+            }
+            .disabled(!store.iCloudSyncSettings.isEnabled || isICloudWorking)
+
+            if let lastSyncedAt = store.iCloudSyncSettings.lastSyncedAt {
+                LabeledContent("Last iCloud sync", value: lastSyncedAt.formatted(date: .abbreviated, time: .shortened))
+            }
+
+            if let error = store.lastICloudSyncError, !error.isEmpty {
+                Label(error, systemImage: "exclamationmark.icloud")
+                    .font(.footnote)
+                    .foregroundStyle(.orange)
+            } else if !iCloudStatusMessage.isEmpty {
+                Text(iCloudStatusMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -138,17 +189,24 @@ struct SyncView: View {
                     }
                 }
                 .onChange(of: settings.branch) { _, _ in
+                    settings.lastRemoteSHA = nil
                     saveRepositorySettings()
                 }
             } else {
                 TextField("Branch", text: $settings.branch)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .onChange(of: settings.branch) { _, _ in
+                        settings.lastRemoteSHA = nil
+                    }
             }
 
             TextField("Sync file path", text: $settings.filePath)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                .onChange(of: settings.filePath) { _, _ in
+                    settings.lastRemoteSHA = nil
+                }
 
             Button {
                 saveRepositorySettings()
@@ -159,7 +217,7 @@ struct SyncView: View {
     }
 
     private var autoSyncSection: some View {
-        Section("Auto Sync") {
+        Section("GitHub Auto Sync") {
             Toggle("Sync automatically", isOn: Binding(
                 get: { store.syncSettings.autoSyncEnabled },
                 set: { enabled in
@@ -177,6 +235,30 @@ struct SyncView: View {
                 Label(error, systemImage: "exclamationmark.triangle")
                     .font(.footnote)
                     .foregroundStyle(.orange)
+            }
+        }
+    }
+
+    private func syncWithICloud() {
+        guard !isICloudWorking else { return }
+        isICloudWorking = true
+        iCloudStatusMessage = ""
+
+        Task {
+            do {
+                try await store.performICloudSync()
+                await MainActor.run {
+                    iCloudStatusMessage = "Your DoesTrack data is up to date in iCloud."
+                }
+            } catch {
+                await MainActor.run {
+                    store.lastICloudSyncError = error.localizedDescription
+                    iCloudStatusMessage = ""
+                }
+            }
+
+            await MainActor.run {
+                isICloudWorking = false
             }
         }
     }
@@ -247,15 +329,27 @@ struct SyncView: View {
                 TextField("Owner", text: $settings.owner)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .onChange(of: settings.owner) { _, _ in
+                        settings.lastRemoteSHA = nil
+                    }
                 TextField("Repository", text: $settings.repository)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .onChange(of: settings.repository) { _, _ in
+                        settings.lastRemoteSHA = nil
+                    }
                 TextField("Branch", text: $settings.branch)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .onChange(of: settings.branch) { _, _ in
+                        settings.lastRemoteSHA = nil
+                    }
                 TextField("File path", text: $settings.filePath)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .onChange(of: settings.filePath) { _, _ in
+                        settings.lastRemoteSHA = nil
+                    }
                 Button {
                     saveRepositorySettings()
                 } label: {
@@ -358,12 +452,23 @@ struct SyncView: View {
         runWork(label: "Pushing backup") {
             try saveSettingsForSync()
             let client = GitHubSyncClient()
-            let sha = try await client.push(
-                backup: store.exportBackup(),
-                settings: settings,
-                token: token,
-                knownSHA: settings.lastRemoteSHA
-            )
+            var remoteSHA: String?
+
+            do {
+                let remote = try await client.pull(settings: settings, token: token)
+                remoteSHA = remote.sha
+                await MainActor.run {
+                    store.mergeBackup(remote.backup)
+                    settings.lastRemoteSHA = remote.sha
+                }
+            } catch GitHubSyncError.notFound {
+                remoteSHA = nil
+                await MainActor.run {
+                    settings.lastRemoteSHA = nil
+                }
+            }
+
+            let sha = try await pushWithConflictRetry(client: client, knownSHA: remoteSHA)
             await MainActor.run {
                 settings.lastRemoteSHA = sha
                 settings.lastSyncedAt = Date()
@@ -392,31 +497,53 @@ struct SyncView: View {
         runWork(label: "Syncing") {
             try saveSettingsForSync()
             let client = GitHubSyncClient()
+            var remoteSHA: String?
 
             do {
                 let remote = try await client.pull(settings: settings, token: token)
+                remoteSHA = remote.sha
                 await MainActor.run {
                     store.mergeBackup(remote.backup)
                     settings.lastRemoteSHA = remote.sha
                 }
             } catch GitHubSyncError.notFound {
+                remoteSHA = nil
                 await MainActor.run {
                     settings.lastRemoteSHA = nil
                 }
             }
 
-            let sha = try await client.push(
-                backup: store.exportBackup(),
-                settings: settings,
-                token: token,
-                knownSHA: settings.lastRemoteSHA
-            )
+            let sha = try await pushWithConflictRetry(client: client, knownSHA: remoteSHA)
             await MainActor.run {
                 settings.lastRemoteSHA = sha
                 settings.lastSyncedAt = Date()
                 store.syncSettings = settings
                 statusMessage = "Sync complete."
             }
+        }
+    }
+
+    private func pushWithConflictRetry(client: GitHubSyncClient, knownSHA: String?) async throws -> String {
+        do {
+            return try await client.push(
+                backup: store.exportBackup(),
+                settings: settings,
+                token: token,
+                knownSHA: knownSHA
+            )
+        } catch GitHubSyncError.conflict(_) {
+            let remote = try await client.pull(settings: settings, token: token)
+            await MainActor.run {
+                store.mergeBackup(remote.backup)
+                settings.lastRemoteSHA = remote.sha
+            }
+
+            return try await client.push(
+                backup: store.exportBackup(),
+                settings: settings,
+                token: token,
+                knownSHA: remote.sha
+            )
         }
     }
 

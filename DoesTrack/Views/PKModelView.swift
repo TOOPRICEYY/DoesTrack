@@ -83,7 +83,7 @@ struct PKModelView: View {
                     .font(.headline)
                     .foregroundStyle(pkBlue)
 
-                Text("First-order elimination model based on scheduled doses, recorded taken doses, and cited default parameters. This is not a serum level, dosing recommendation, or substitute for labs.")
+                Text("One-compartment first-order absorption and elimination model based on scheduled doses, recorded taken doses, and cited default parameters. This is not a serum level, dosing recommendation, or substitute for labs.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -228,7 +228,7 @@ struct PKModelView: View {
                 Label(profile.parameters.route, systemImage: "syringe")
                     .font(.caption.bold())
                     .foregroundStyle(pkBlue)
-                Text("Curve uses first-order absorption for the \(routeLabel(profile.medication.instructions)) route (absorption half-life \(halfLife(profile.absorptionHalfLifeDays))). IM absorbs faster than SubQ, giving a sharper, earlier peak.")
+                Text("Curve uses the \(routeLabel(profile.medication.instructions)) route absorption half-life \(halfLife(profile.absorptionHalfLifeDays)). Shorter absorption values create sharper, earlier display peaks.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
