@@ -309,6 +309,7 @@ struct LogDoseSheet: View {
     @State private var unit: String
     @State private var method: String
     @State private var injectionSite = "Stomach - Upper Right"
+    @State private var confirmsDeleteLog = false
     @State private var notes = ""
     @State private var showsNotes = false
     @State private var showsAdvanced = false
@@ -470,14 +471,22 @@ struct LogDoseSheet: View {
 
                 if let existingLog {
                     Button(role: .destructive) {
-                        store.deleteLog(existingLog)
-                        dismiss()
+                        confirmsDeleteLog = true
                     } label: {
                         Label("Delete log entry", systemImage: "trash")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                     }
                     .accessibilityLabel("Delete log entry")
+                    .confirmationDialog("Delete this log entry?", isPresented: $confirmsDeleteLog, titleVisibility: .visible) {
+                        Button("Delete Log Entry", role: .destructive) {
+                            store.deleteLog(existingLog)
+                            dismiss()
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("The dose goes back to not logged and any batch draw-down is restored.")
+                    }
                 }
 
                 if case .editLog = target {

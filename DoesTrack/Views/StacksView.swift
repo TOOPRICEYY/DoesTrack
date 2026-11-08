@@ -84,11 +84,12 @@ struct ProtocolStacksView: View {
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.white)
                         .frame(width: 74, height: 74)
                         .background(Color.appBlue, in: Circle())
                         .shadow(radius: 12, y: 6)
                 }
+                .accessibilityLabel("New protocol")
                 .padding()
             }
             .background(Color.appBackground.ignoresSafeArea())
@@ -131,6 +132,7 @@ struct ProtocolStackCard: View {
     var onPause: () -> Void
     var onResume: () -> Void
     var onDelete: () -> Void
+    @State private var confirmsDelete = false
 
     var body: some View {
         ModelCard {
@@ -164,24 +166,37 @@ struct ProtocolStackCard: View {
                         Image(systemName: "square.and.arrow.up")
                             .foregroundStyle(Color.appBlue)
                     }
+                    .accessibilityLabel("Share \(stack.name)")
                     Button(action: onEdit) {
                         Image(systemName: "pencil")
                             .foregroundStyle(.orange)
                     }
+                    .accessibilityLabel("Edit \(stack.name)")
                     Button(action: stack.isActive ? onPause : onResume) {
                         Image(systemName: stack.isActive ? "pause.fill" : "play.fill")
                             .foregroundStyle(.orange)
                     }
-                    Button(role: .destructive, action: onDelete) {
+                    .accessibilityLabel(stack.isActive ? "Pause \(stack.name)" : "Resume \(stack.name)")
+                    Button(role: .destructive) {
+                        confirmsDelete = true
+                    } label: {
                         Image(systemName: "trash")
                     }
+                    .accessibilityLabel("Delete \(stack.name)")
                     Spacer()
                     Button(action: onToggle) {
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                             .foregroundStyle(.secondary)
                     }
+                    .accessibilityLabel(isExpanded ? "Collapse \(stack.name)" : "Expand \(stack.name)")
                 }
                 .font(.title2)
+                .confirmationDialog("Delete \(stack.name)?", isPresented: $confirmsDelete, titleVisibility: .visible) {
+                    Button("Delete Protocol", role: .destructive, action: onDelete)
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("This removes the protocol's medications along with their dose history and batches on every synced device. Pause it instead to keep the history.")
+                }
 
                 if isExpanded {
                     VStack(alignment: .leading, spacing: 14) {

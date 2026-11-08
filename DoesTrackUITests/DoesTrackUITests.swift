@@ -57,6 +57,66 @@ final class DoesTrackUITests: XCTestCase {
         attachScreenshot(named: "notification-settings-discreet")
     }
 
+
+    func testScreenshotTour() throws {
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Good'")).firstMatch.waitForExistence(timeout: 8))
+        shot("01-home-empty")
+        app.swipeUp(); shot("02-home-empty-scrolled"); app.swipeDown()
+        createProtocolWithCatalogMedication()
+        shot("03-home-with-protocol")
+        app.swipeUp(); shot("04-home-scrolled"); app.swipeUp(); shot("05-home-scrolled2"); app.swipeDown(); app.swipeDown()
+        app.buttons["Open calendar"].waitAndTap(); shot("06-calendar"); app.swipeUp(); shot("07-calendar-scrolled")
+        app.buttons["Close calendar"].waitAndTap()
+        app.buttons["Open notifications"].waitAndTap(); shot("08-notifications")
+        app.buttons["Upcoming"].waitAndTap(); shot("09-notif-upcoming")
+        app.buttons["Reminders"].waitAndTap(); shot("10-notif-reminders")
+        app.buttons["Close notifications"].waitAndTap()
+        app.buttons["Customize home"].waitAndTap(); shot("11-customize"); app.swipeUp(); shot("12-customize-scrolled")
+        app.buttons["Close customize home"].waitAndTap()
+        app.tabBars.buttons["Tracker"].waitAndTap(); sleep(1); shot("13-tracker"); app.swipeUp(); shot("14-tracker-scrolled")
+        app.buttons["Open optimization stacks"].waitAndTap(); shot("15-stacks")
+        app.buttons["Close optimization stacks"].waitAndTap()
+        app.tabBars.buttons["Pulse"].waitAndTap(); sleep(1); shot("16-pulse"); app.swipeUp(); shot("17-pulse-scrolled")
+        app.swipeDown()
+        app.buttons["PK Model"].waitAndTap(); sleep(1); shot("18-pk"); app.buttons["Done"].waitAndTap()
+        app.buttons["Open your latest review"].waitAndTap(); shot("19-review"); app.buttons["Done"].waitAndTap()
+        app.tabBars.buttons["Profile"].waitAndTap(); sleep(1); shot("20-profile"); app.swipeUp(); shot("21-profile-scrolled")
+        app.buttons["App Settings"].waitAndTap(); shot("22-settings")
+        app.buttons["Notifications"].waitAndTap(); shot("23-notif-settings"); app.buttons["Done"].waitAndTap()
+        app.buttons["Data Management"].waitAndTap(); shot("24-sync"); app.swipeUp(); shot("25-sync-scrolled")
+    }
+
+
+    func testFlowTour() throws {
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Good'")).firstMatch.waitForExistence(timeout: 8))
+        shot("f00-home-empty")
+        createProtocolWithCatalogMedication()
+        shot("f01-home")
+        app.buttons["Log unscheduled dose"].waitAndTap(); sleep(1); shot("f02-log-unscheduled")
+        app.swipeUp(); shot("f03-log-unscheduled-scrolled")
+        app.buttons["Log Dose"].waitAndTap(); sleep(1); shot("f04-after-log")
+        app.swipeUp(); shot("f05-home-after-log-scrolled"); app.swipeDown(); app.swipeDown()
+        app.buttons["Open notifications"].waitAndTap(); shot("f06-notifs-after-log"); app.buttons["Close notifications"].waitAndTap()
+        app.tabBars.buttons["Tracker"].waitAndTap(); sleep(1); shot("f07-tracker-after-log")
+        app.swipeUp(); shot("f08-tracker-scrolled")
+        app.staticTexts["Tirzepatide"].firstMatch.tap(); sleep(1); shot("f09-med-detail"); app.swipeUp(); shot("f10-med-detail-scrolled")
+        app.swipeDown(velocity: .fast); app.swipeDown(velocity: .fast); sleep(1)
+        app.tabBars.buttons["Home"].tap()
+        app.buttons["Open optimization stacks"].waitAndTap(); sleep(1); shot("f11-stacks")
+        app.buttons["Pause TRT+"].waitAndTap(); sleep(1); shot("f12-after-pause")
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Inactive'")).firstMatch.tap(); sleep(1); shot("f13-inactive")
+        app.buttons["Delete TRT+"].waitAndTap(); sleep(1); shot("f14-delete-confirm")
+        XCTAssertTrue(app.buttons["Delete Protocol"].waitForExistence(timeout: 3))
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85)).tap()
+        sleep(1)
+        XCTAssertTrue(app.staticTexts["TRT+"].exists, "Dismissing the delete dialog must keep the protocol")
+        app.buttons["Resume TRT+"].waitAndTap()
+        XCTAssertTrue(app.buttons["Active (1)"].waitForExistence(timeout: 4))
+        app.buttons["Close optimization stacks"].waitAndTap(); sleep(1); shot("f15-home-after-resume")
+    }
+
+    private func shot(_ name: String) { attachScreenshot(named: name) }
+
     private func attachScreenshot(named name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name

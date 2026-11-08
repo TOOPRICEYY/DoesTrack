@@ -799,13 +799,13 @@ final class DoseStore: ObservableObject {
 
     /// Name and age (in whole weeks, minimum 1) of the longest-running active
     /// protocol, mirroring the model app's "N Weeks on Protocol" card.
-    func activeProtocolTenure(reference: Date = Date()) -> (stackName: String, weeks: Int)? {
+    func activeProtocolTenure(reference: Date = Date()) -> (stackName: String, weeks: Int, days: Int)? {
         let candidates = protocolStacks(includeInactive: false)
             .compactMap { stack in stack.startedAt.map { (stack.name, $0) } }
         guard let earliest = candidates.min(by: { $0.1 < $1.1 }) else { return nil }
 
         let days = calendar.dateComponents([.day], from: earliest.1, to: reference).day ?? 0
-        return (earliest.0, max(1, days / 7))
+        return (earliest.0, max(1, days / 7), max(0, days))
     }
 
     var isWeeklyCheckInDue: Bool {
@@ -822,8 +822,13 @@ final class DoseStore: ObservableObject {
 
         let today = scheduledDoses(on: reference)
         let todayOpen = today.filter { $0.log?.status != .taken && $0.log?.status != .skipped }.count
-        let upcoming = upcomingDoses(limit: 20).filter { !$0.scheduledAt.isSameDay(as: reference) }.count
-        return todayOpen + upcoming + (isWeeklyCheckInDue ? 1 : 0)
+        // Only tomorrow's doses count as "new" upcoming items; doses weeks
+        // out stay visible in the Upcoming tab without inflating the badge.
+        let tomorrow = reference.startOfDay.addingDays(1)
+        let tomorrowOpen = scheduledDoses(on: tomorrow)
+            .filter { $0.log?.status != .taken && $0.log?.status != .skipped }.count
+        let checkInDue = isWeeklyCheckInDue && !medications.isEmpty
+        return todayOpen + tomorrowOpen + (checkInDue ? 1 : 0)
     }
 
     var notificationsMarkedAllReadAt: Date? {

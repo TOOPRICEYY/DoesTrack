@@ -28,6 +28,8 @@ struct NotificationsCenterView: View {
                     VStack(alignment: .leading) {
                         Text("Notifications")
                             .font(.largeTitle.bold())
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
                         Text(attentionCount == 0 ? "You're all caught up" : "\(attentionCount) new item\(attentionCount == 1 ? "" : "s") need attention")
                             .foregroundStyle(.secondary)
                     }

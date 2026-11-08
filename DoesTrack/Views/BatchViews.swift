@@ -132,6 +132,7 @@ struct BatchEditorView: View {
     @State private var concentrationText: String
     @State private var purchaseDate: Date
     @State private var totalText: String
+    @State private var confirmsDelete = false
     @State private var remainingText: String
     @State private var notes: String
     @State private var isFinished: Bool
@@ -231,8 +232,14 @@ struct BatchEditorView: View {
                 if let existing {
                     Section {
                         Button("Delete Batch", role: .destructive) {
-                            store.deleteBatch(existing)
-                            dismiss()
+                            confirmsDelete = true
+                        }
+                        .confirmationDialog("Delete this batch?", isPresented: $confirmsDelete, titleVisibility: .visible) {
+                            Button("Delete Batch", role: .destructive) {
+                                store.deleteBatch(existing)
+                                dismiss()
+                            }
+                            Button("Cancel", role: .cancel) {}
                         }
                     }
                 }

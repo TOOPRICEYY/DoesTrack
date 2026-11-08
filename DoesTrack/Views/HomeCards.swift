@@ -206,7 +206,7 @@ extension HomeCardID {
             let taken = doses.filter { $0.log?.status == .taken }.count
             return "\(taken) / \(doses.count)"
         case .lastDose:
-            guard let log = store.logs.first,
+            guard let log = store.logs.filter({ $0.status == .taken }).max(by: { ($0.takenAt ?? $0.scheduledAt) < ($1.takenAt ?? $1.scheduledAt) }),
                   let medication = store.medication(for: log.medicationID)
             else { return "-" }
             return medication.name
@@ -271,9 +271,21 @@ extension HomeCardID {
     func subtitle(in store: DoseStore) -> String {
         switch self {
         case .nextDose:
-            return store.nextScheduledDose()?.medication.name ?? "No scheduled dose"
+            guard let dose = store.nextScheduledDose() else { return "No scheduled dose" }
+            let day = dose.scheduledAt
+            let calendar = Calendar.current
+            let dayText: String
+            if calendar.isDateInToday(day) {
+                dayText = "Today"
+            } else if calendar.isDateInTomorrow(day) {
+                dayText = "Tomorrow"
+            } else {
+                dayText = day.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
+            }
+            return "\(dose.medication.name) · \(dayText)"
         case .streak:
-            return store.currentStreak() == 0 ? "Log a dose to start" : "full weeks logged"
+            if store.currentStreak() > 0 { return "full weeks logged" }
+            return store.logs.contains { $0.status == .taken } ? "Builds from scheduled doses" : "Log a dose to start"
         case .weeklyCompliance:
             let delta = store.weeklyComplianceDelta()
             let deltaText = delta.formatted(.percent.precision(.fractionLength(0)))
@@ -281,8 +293,8 @@ extension HomeCardID {
         case .todayDoses:
             return "scheduled today"
         case .lastDose:
-            guard let log = store.logs.first else { return "No doses logged yet" }
-            return log.scheduledAt.formatted(date: .abbreviated, time: .shortened)
+            guard let log = store.logs.filter({ $0.status == .taken }).max(by: { ($0.takenAt ?? $0.scheduledAt) < ($1.takenAt ?? $1.scheduledAt) }) else { return "No doses logged yet" }
+            return (log.takenAt ?? log.scheduledAt).formatted(date: .abbreviated, time: .shortened)
         case .todayShots:
             return "injection schedule"
         case .todaySupps:

@@ -47,7 +47,7 @@ struct PulseView: View {
                     }
 
                     if let tenure = store.activeProtocolTenure() {
-                        PulseHighlight(title: "\(tenure.weeks) Week\(tenure.weeks == 1 ? "" : "s") on Protocol", subtitle: tenure.stackName, systemImage: "calendar.badge.clock")
+                        PulseHighlight(title: tenure.days < 7 ? "Day \(tenure.days + 1) on Protocol" : "\(tenure.weeks) Week\(tenure.weeks == 1 ? "" : "s") on Protocol", subtitle: tenure.stackName, systemImage: "calendar.badge.clock")
                     }
 
                     Button {

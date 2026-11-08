@@ -113,10 +113,10 @@ struct ProtocolScoreCard: View {
                 .frame(maxWidth: .infinity)
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 22) {
-                    ScoreMetric(title: "Adherence", value: adherence.formatted(.percent.precision(.fractionLength(0))))
-                    ScoreMetric(title: "Saturation", value: saturation.formatted(.percent.precision(.fractionLength(0))))
-                    ScoreMetric(title: "Streak", value: "\(streak / 7) weeks")
-                    ScoreMetric(title: "Consistency", value: adherence.formatted(.percent.precision(.fractionLength(0))))
+                    ScoreMetric(title: "Adherence", value: adherence.formatted(.percent.precision(.fractionLength(0))), tint: .appBlue)
+                    ScoreMetric(title: "Saturation", value: saturation.formatted(.percent.precision(.fractionLength(0))), tint: .green)
+                    ScoreMetric(title: "Streak", value: "\(streak / 7) week\(streak / 7 == 1 ? "" : "s")", tint: .orange)
+                    ScoreMetric(title: "Consistency", value: adherence.formatted(.percent.precision(.fractionLength(0))), tint: .purple)
                 }
             }
         }
@@ -126,12 +126,16 @@ struct ProtocolScoreCard: View {
 struct ScoreMetric: View {
     var title: String
     var value: String
+    var tint: Color = .appBlue
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(title, systemImage: "circle.fill")
+            Label {
+                Text(title).foregroundStyle(.primary)
+            } icon: {
+                Image(systemName: "circle.fill").foregroundStyle(tint)
+            }
                 .font(.headline)
-                .foregroundStyle(.primary)
                 .labelStyle(.titleAndIcon)
             Text(value)
                 .font(.title3.bold())

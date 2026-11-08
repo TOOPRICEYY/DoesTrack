@@ -32,10 +32,10 @@ struct RootView: View {
             Button {
                 showsStacks = true
             } label: {
-                Image(systemName: "square.grid.2x2.fill.badge.plus")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(.primary)
-                    .frame(width: 76, height: 76)
+                Image(systemName: "square.grid.2x2.fill")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(Color.appBlue)
+                    .frame(width: 62, height: 62)
                     .background(Color.blue.opacity(0.28), in: Circle())
                     .overlay {
                         Circle().stroke(.white.opacity(0.8), lineWidth: 1)

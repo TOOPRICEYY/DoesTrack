@@ -149,6 +149,7 @@ private struct SupplementEditorView: View {
     @State private var benefits: Set<SupplementBenefit>
     @State private var days: Set<Weekday>
     @State private var isActive: Bool
+    @State private var confirmsDelete = false
 
     private let existing: Supplement?
 
@@ -223,10 +224,18 @@ private struct SupplementEditorView: View {
                 if existing != nil {
                     Section {
                         Button("Delete Supplement", role: .destructive) {
-                            if let existing {
-                                store.deleteSupplement(existing)
+                            confirmsDelete = true
+                        }
+                        .confirmationDialog("Delete this supplement?", isPresented: $confirmsDelete, titleVisibility: .visible) {
+                            Button("Delete Supplement", role: .destructive) {
+                                if let existing {
+                                    store.deleteSupplement(existing)
+                                }
+                                dismiss()
                             }
-                            dismiss()
+                            Button("Cancel", role: .cancel) {}
+                        } message: {
+                            Text("Its check-off history is removed too.")
                         }
                     }
                 }

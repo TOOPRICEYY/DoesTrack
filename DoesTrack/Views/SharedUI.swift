@@ -80,6 +80,8 @@ struct SectionHeader: View {
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(.secondary)
                 .tracking(3)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
             Rectangle().fill(.primary.opacity(0.12)).frame(height: 1)
         }
     }
