@@ -101,7 +101,7 @@ struct PulseAssistantReply: Identifiable {
             bullets: [
                 nextDose.map { "Next dose: \($0.medication.name), \($0.scheduledAt.formatted(date: .abbreviated, time: .shortened))" } ?? "No upcoming dose scheduled.",
                 "Current streak: \(store.currentStreak()) day\(store.currentStreak() == 1 ? "" : "s").",
-                "Protocol score: \(store.protocolScore())."
+                store.protocolScore().map { "Protocol score: \($0)." } ?? "Protocol score starts after your first logged dose."
             ]
         )
     }

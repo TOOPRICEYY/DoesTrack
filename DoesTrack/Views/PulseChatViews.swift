@@ -101,8 +101,24 @@ struct FortnightlyReviewView: View {
     // MARK: Data
 
     private var currentAdherence: Double { store.adherenceRate(days: 14) }
-    private var previousAdherence: Double { store.adherenceRate(days: 14, endingAt: Date().addingDays(-14)) }
-    private var adherenceDelta: Double { currentAdherence - previousAdherence }
+    /// Nil when either window has no resolved doses to compare.
+    private var adherenceChange: Double? {
+        guard let current = store.adherence(days: 14),
+              let previous = store.adherence(days: 14, endingAt: Date().addingDays(-14))
+        else { return nil }
+        return current - previous
+    }
+    private var adherenceDelta: Double { adherenceChange ?? 0 }
+    private var adherenceDeltaText: String {
+        guard store.adherence(days: 14) != nil else { return "Nothing logged yet" }
+        guard let change = adherenceChange else { return "No earlier data to compare" }
+        if abs(change) < 0.005 { return "No change vs prior 14 days" }
+        return "\(change > 0 ? "+" : "")\(change.formatted(.percent.precision(.fractionLength(0)))) vs prior 14 days"
+    }
+    private var adherenceDeltaColor: Color {
+        guard let change = adherenceChange, abs(change) >= 0.005 else { return .secondary }
+        return change > 0 ? .green : .orange
+    }
 
     private var rows: [AdherenceRow] { store.adherenceRows(days: 14) }
     private var takenCount: Int { rows.reduce(0) { $0 + $1.taken } }
@@ -132,11 +148,11 @@ struct FortnightlyReviewView: View {
     private var adherenceCard: some View {
         reviewCard("Adherence", systemImage: "chart.line.uptrend.xyaxis") {
             HStack(alignment: .lastTextBaseline, spacing: 12) {
-                Text(currentAdherence.formatted(.percent.precision(.fractionLength(0))))
+                Text(scheduledCount == 0 ? "–" : currentAdherence.formatted(.percent.precision(.fractionLength(0))))
                     .font(.system(size: 42, weight: .bold))
-                Text("\(adherenceDelta >= 0 ? "+" : "")\(adherenceDelta.formatted(.percent.precision(.fractionLength(0)))) vs prior 14 days")
+                Text(adherenceDeltaText)
                     .font(.subheadline)
-                    .foregroundStyle(adherenceDelta >= 0 ? .green : .orange)
+                    .foregroundStyle(adherenceDeltaColor)
             }
 
             Chart(rows) { row in
@@ -154,7 +170,7 @@ struct FortnightlyReviewView: View {
     private var dosesCard: some View {
         reviewCard("Doses", systemImage: "pills.fill") {
             LabeledContent("Taken", value: "\(takenCount) of \(scheduledCount) scheduled")
-            LabeledContent("Streak", value: "\(store.currentStreak() / 7) weeks")
+            LabeledContent("Streak", value: store.streakText)
             if !store.inventoryWarnings().isEmpty {
                 LabeledContent("Refill needed") {
                     Text(store.inventoryWarnings().prefix(2).map(\.name).joined(separator: ", "))
@@ -218,7 +234,9 @@ struct FortnightlyReviewView: View {
         var output: [String] = []
 
         if scheduledCount == 0 {
-            output.append("No doses were scheduled in this window. Add or resume a protocol to start tracking.")
+            output.append(store.scheduledDoses(on: Date()).contains(where: \.isOpen)
+                ? "Nothing has been logged in this window yet. Log today's dose to start your adherence trend."
+                : "No doses were due in this window. Add or resume a protocol to start tracking.")
         } else if currentAdherence < 0.8 {
             output.append("Adherence is under 80%. Consider enabling reminders or moving dose times to fit your routine.")
         }

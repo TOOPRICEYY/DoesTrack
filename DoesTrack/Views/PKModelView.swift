@@ -102,7 +102,9 @@ struct PKModelView: View {
                             Text(profile.medication.name)
                                 .font(.subheadline.bold())
                                 .lineLimit(1)
-                            Text(profile.parameters.drugName)
+                            Text(profile.parameters.drugName.caseInsensitiveCompare(profile.medication.name) == .orderedSame
+                                 ? profile.medication.displayDose
+                                 : profile.parameters.drugName)
                                 .font(.caption)
                                 .foregroundStyle(isSelected ? .white.opacity(0.86) : .secondary)
                         }

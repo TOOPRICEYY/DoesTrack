@@ -198,9 +198,10 @@ extension HomeCardID {
             guard let dose = store.nextScheduledDose() else { return "-" }
             return dose.scheduledAt.formatted(date: .omitted, time: .shortened)
         case .streak:
-            return "\(store.currentStreak() / 7) wks"
+            return store.streakText
         case .weeklyCompliance:
-            return store.adherenceRate(days: 7).formatted(.percent.precision(.fractionLength(0)))
+            guard let adherence = store.adherence(days: 7) else { return "-" }
+            return adherence.formatted(.percent.precision(.fractionLength(0)))
         case .todayDoses:
             let doses = store.scheduledDoses(on: Date())
             let taken = doses.filter { $0.log?.status == .taken }.count
@@ -275,7 +276,9 @@ extension HomeCardID {
             let day = dose.scheduledAt
             let calendar = Calendar.current
             let dayText: String
-            if calendar.isDateInToday(day) {
+            if dose.isOverdue {
+                dayText = "Overdue"
+            } else if calendar.isDateInToday(day) {
                 dayText = "Today"
             } else if calendar.isDateInTomorrow(day) {
                 dayText = "Tomorrow"
@@ -284,12 +287,18 @@ extension HomeCardID {
             }
             return "\(dose.medication.name) · \(dayText)"
         case .streak:
-            if store.currentStreak() > 0 { return "full weeks logged" }
+            if store.currentStreak() > 0 { return "dose days fully logged" }
             return store.logs.contains { $0.status == .taken } ? "Builds from scheduled doses" : "Log a dose to start"
         case .weeklyCompliance:
-            let delta = store.weeklyComplianceDelta()
+            guard store.adherence(days: 7) != nil else {
+                return store.scheduledDoses(on: Date()).contains(where: \.isOpen)
+                    ? "Updates once today's dose is logged"
+                    : "No doses due this week yet"
+            }
+            guard let delta = store.weeklyComplianceDelta() else { return "First week tracked" }
+            if abs(delta) < 0.005 { return "Same as last wk" }
             let deltaText = delta.formatted(.percent.precision(.fractionLength(0)))
-            return "\(delta >= 0 ? "+" : "")\(deltaText) vs last wk"
+            return "\(delta > 0 ? "+" : "")\(deltaText) vs last wk"
         case .todayDoses:
             return "scheduled today"
         case .lastDose:

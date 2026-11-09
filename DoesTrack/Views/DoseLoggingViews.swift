@@ -183,7 +183,7 @@ struct CalendarScheduledDoseRow: View {
         case .missed: return "Missed"
         case .wasted: return "Wasted"
         case nil:
-            return dose.scheduledAt.isSameDay(as: Date()) ? "Scheduled" : "Scheduled"
+            return dose.isOverdue ? "Overdue" : "Scheduled"
         }
     }
 
@@ -193,7 +193,7 @@ struct CalendarScheduledDoseRow: View {
         case .skipped: return .orange
         case .missed: return .red
         case .wasted: return .orange
-        case nil: return doseLoggingBlue
+        case nil: return dose.isOverdue ? .red : doseLoggingBlue
         }
     }
 }
@@ -608,7 +608,20 @@ struct LogDoseSheet: View {
         if case .editLog = target {
             return "Editing dose · \(targetDate.formatted(date: .abbreviated, time: .omitted)) · \(method)"
         }
+        if let fulfilledDose {
+            let day = fulfilledDose.scheduledAt.isSameDay(as: Date())
+                ? "today's"
+                : fulfilledDose.scheduledAt.formatted(.dateTime.weekday(.wide)) + "'s"
+            return "Counts as \(day) scheduled dose · \(method)"
+        }
         return "Unscheduled · \(targetDate.formatted(date: .abbreviated, time: .omitted)) · \(method)"
+    }
+
+    /// The open scheduled slot this unscheduled entry will fill, so taking a
+    /// dose off-schedule doesn't leave the same day's slot showing overdue.
+    private var fulfilledDose: ScheduledDose? {
+        guard case .unscheduled = target, !shiftsFutureDoses, let medication else { return nil }
+        return store.openScheduledDose(for: medication.id, on: effectiveLoggedAt)
     }
 
     // MARK: Batch draw
@@ -983,7 +996,8 @@ struct LogDoseSheet: View {
                 painLevel: showsAdvanced ? Int(painLevel) : nil,
                 siteReaction: showsAdvanced && siteReaction != "None" ? siteReaction : nil,
                 batchID: selectedBatchID,
-                volumeMl: resolvedVolumeMl
+                volumeMl: resolvedVolumeMl,
+                fulfillsOpenSchedule: !shiftsFutureDoses
             )
             if shiftsFutureDoses {
                 store.shiftRegimenSchedules(for: medication.id, anchoredAt: effectiveLoggedAt)
@@ -1264,7 +1278,10 @@ private struct ScheduledDoseActionRow: View {
         case .skipped: return "Skipped"
         case .missed: return "Missed"
         case .wasted: return "Wasted"
-        case nil: return dose.scheduledAt.isSameDay(as: Date()) ? "Due today" : "Scheduled"
+        case nil:
+            let time = dose.scheduledAt.formatted(date: .omitted, time: .shortened)
+            if dose.isOverdue { return "Overdue since \(time)" }
+            return dose.scheduledAt.isSameDay(as: Date()) ? "Due \(time)" : "Scheduled"
         }
     }
 
@@ -1274,7 +1291,9 @@ private struct ScheduledDoseActionRow: View {
         case .skipped: return .orange
         case .missed: return .red
         case .wasted: return .orange
-        case nil: return dose.scheduledAt.isSameDay(as: Date()) ? .orange : doseLoggingBlue
+        case nil:
+            if dose.isOverdue { return .red }
+            return dose.scheduledAt.isSameDay(as: Date()) ? .orange : doseLoggingBlue
         }
     }
 }

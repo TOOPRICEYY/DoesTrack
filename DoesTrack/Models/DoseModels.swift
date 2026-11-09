@@ -367,12 +367,27 @@ struct ScheduledDose: Identifiable, Equatable {
     var scheduledAt: Date
     var log: DoseLog?
 
+    /// The logged status, or `.missed` once the scheduled day has ended with
+    /// nothing logged. A dose whose time has passed today is still open; see
+    /// `isOverdue`.
     var effectiveStatus: DoseLogStatus? {
         if let status = log?.status {
             return status
         }
 
-        return scheduledAt < Date() ? .missed : nil
+        return scheduledAt.startOfDay < Date().startOfDay ? .missed : nil
+    }
+
+    /// Unlogged, past its time, but still inside its scheduled day, so the
+    /// user can take it without it counting as missed.
+    var isOverdue: Bool {
+        let now = Date()
+        return log == nil && scheduledAt < now && scheduledAt.isSameDay(as: now)
+    }
+
+    /// Unlogged and not yet missed: either upcoming or overdue today.
+    var isOpen: Bool {
+        log == nil && effectiveStatus == nil
     }
 
     var isActionable: Bool {

@@ -408,8 +408,16 @@ final class DoseStore: ObservableObject {
             }
     }
 
+    /// The dose to act on next: today's earliest unlogged dose, even when its
+    /// time has already passed, otherwise the next unlogged upcoming dose.
     func nextScheduledDose(after date: Date = Date()) -> ScheduledDose? {
-        upcomingDoses(after: date, daysAhead: 60, limit: 1).first
+        let start = date.startOfDay
+        return scheduledDoses(from: start, through: start.addingDays(60)).first { $0.log == nil }
+    }
+
+    /// An unlogged scheduled dose of this medication on the given day, if any.
+    func openScheduledDose(for medicationID: UUID, on date: Date) -> ScheduledDose? {
+        scheduledDoses(on: date).first { $0.medication.id == medicationID && $0.log == nil }
     }
 
     func upcomingDoses(after date: Date = Date(), daysAhead: Int = 60, limit: Int = 20) -> [ScheduledDose] {
@@ -506,8 +514,28 @@ final class DoseStore: ObservableObject {
         painLevel: Int? = nil,
         siteReaction: String? = nil,
         batchID: UUID? = nil,
-        volumeMl: Double? = nil
+        volumeMl: Double? = nil,
+        fulfillsOpenSchedule: Bool = false
     ) {
+        // A dose logged off-schedule on a day that still has an open slot for
+        // the same medication is that day's dose, not an extra one.
+        if fulfillsOpenSchedule, let open = openScheduledDose(for: medicationID, on: takenAt) {
+            record(
+                open,
+                status: .taken,
+                amount: amount,
+                takenAt: takenAt,
+                notes: notes,
+                method: method,
+                site: site,
+                painLevel: painLevel,
+                siteReaction: siteReaction,
+                batchID: batchID,
+                volumeMl: volumeMl
+            )
+            return
+        }
+
         let log = DoseLog(
             medicationID: medicationID,
             scheduleID: nil,
@@ -783,18 +811,28 @@ final class DoseStore: ObservableObject {
         return byDay.values.sorted { $0.day > $1.day }
     }
 
-    func adherenceRate(days: Int, endingAt end: Date = Date()) -> Double {
+    /// Share of resolved scheduled doses that were taken, or nil when nothing
+    /// in the window has been resolved yet. Doses still open today (upcoming
+    /// or overdue) are left out until they are logged or the day ends.
+    func adherence(days: Int, endingAt end: Date = Date()) -> Double? {
         let start = end.addingDays(-(days - 1)).startOfDay
-        let scheduled = scheduledDoses(from: start, through: end).filter { $0.scheduledAt <= end }
-        guard !scheduled.isEmpty else { return 0 }
+        let scheduled = scheduledDoses(from: start, through: end).filter { $0.scheduledAt <= end && !$0.isOpen }
+        guard !scheduled.isEmpty else { return nil }
         let takenCount = scheduled.filter { $0.log?.status == .taken }.count
         return Double(takenCount) / Double(scheduled.count)
     }
 
+    func adherenceRate(days: Int, endingAt end: Date = Date()) -> Double {
+        adherence(days: days, endingAt: end) ?? 0
+    }
+
     /// Week-over-week compliance change, e.g. +0.12 when this week is 12
-    /// points ahead of last week.
-    func weeklyComplianceDelta() -> Double {
-        adherenceRate(days: 7) - adherenceRate(days: 7, endingAt: Date().addingDays(-7))
+    /// points ahead of last week. Nil until both weeks have resolved doses.
+    func weeklyComplianceDelta() -> Double? {
+        guard let current = adherence(days: 7),
+              let previous = adherence(days: 7, endingAt: Date().addingDays(-7))
+        else { return nil }
+        return current - previous
     }
 
     /// Name and age (in whole weeks, minimum 1) of the longest-running active
@@ -855,39 +893,52 @@ final class DoseStore: ObservableObject {
         }
     }
 
+    /// Consecutive scheduled days with every dose taken. Today only counts
+    /// once all of its doses are taken, and doses still open today never
+    /// break the streak.
     func currentStreak() -> Int {
         var streak = 0
-        var day = Date().startOfDay
+        let today = Date().startOfDay
+        var day = today
 
         for _ in 0..<365 {
-            let doses = scheduledDoses(on: day).filter { $0.scheduledAt <= Date() }
-            if doses.isEmpty {
-                day = day.addingDays(-1)
-                continue
-            }
+            let doses = scheduledDoses(on: day)
+            defer { day = day.addingDays(-1) }
+            if doses.isEmpty { continue }
 
-            let allTaken = doses.allSatisfy { $0.log?.status == .taken }
-            guard allTaken else { break }
-            streak += 1
-            day = day.addingDays(-1)
+            if doses.allSatisfy({ $0.log?.status == .taken }) {
+                streak += 1
+            } else if day == today, doses.allSatisfy({ $0.log?.status == .taken || $0.isOpen }) {
+                continue
+            } else {
+                break
+            }
         }
 
         return streak
+    }
+
+    /// The streak as display text, e.g. "1 day" or "12 days".
+    var streakText: String {
+        let streak = currentStreak()
+        return "\(streak) day\(streak == 1 ? "" : "s")"
     }
 
     func adherenceRows(days: Int) -> [AdherenceRow] {
         let today = Date().startOfDay
         return (0..<days).reversed().map { offset in
             let day = today.addingDays(-offset)
-            let doses = scheduledDoses(on: day).filter { $0.scheduledAt <= Date() || day < today }
+            let doses = scheduledDoses(on: day).filter { !$0.isOpen }
             let taken = doses.filter { $0.log?.status == .taken }.count
             let rate = doses.isEmpty ? 0 : Double(taken) / Double(doses.count)
             return AdherenceRow(date: day, taken: taken, scheduled: doses.count, rate: rate)
         }
     }
 
-    func protocolScore() -> Int {
-        let adherence = adherenceRate(days: 7)
+    /// Nil until at least one scheduled dose has been resolved, so a brand
+    /// new protocol doesn't open with a score it hasn't earned.
+    func protocolScore() -> Int? {
+        guard let adherence = adherence(days: 7) ?? adherence(days: 30) else { return nil }
         let activeRatio = medications.isEmpty ? 0 : Double(medications.filter(\.isActive).count) / Double(medications.count)
         let inventoryHealth = inventoryWarnings().isEmpty ? 1.0 : 0.55
         let score = (adherence * 55) + (activeRatio * 30) + (inventoryHealth * 15)

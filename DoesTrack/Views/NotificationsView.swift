@@ -209,24 +209,24 @@ struct NotificationTodayMedicationCard: View {
     }
 
     private var statusColor: Color {
-        switch dose.log?.status {
+        switch dose.effectiveStatus {
         case .taken: return .green
         case .skipped: return .orange
         case .missed: return .red
         case .wasted: return .orange
         case nil:
-            return dose.scheduledAt < Date() ? .red : Color.appBlue
+            return dose.isOverdue ? .red : Color.appBlue
         }
     }
 
     private var statusText: String {
-        switch dose.log?.status {
+        switch dose.effectiveStatus {
         case .taken: return "TAKEN"
         case .skipped: return "SKIPPED"
         case .missed: return "MISSED"
         case .wasted: return "WASTED"
         case nil:
-            return dose.scheduledAt < Date() ? "OVERDUE" : "DUE"
+            return dose.isOverdue ? "OVERDUE" : "DUE"
         }
     }
 }
@@ -285,22 +285,22 @@ struct NotificationDoseRow: View {
     }
 
     private var statusColor: Color {
-        switch dose.log?.status {
+        switch dose.effectiveStatus {
         case .taken: return .green
         case .skipped: return .orange
         case .missed: return .red
         case .wasted: return .orange
-        case nil: return dose.scheduledAt < Date() ? .red : .cyan
+        case nil: return dose.isOverdue ? .red : .cyan
         }
     }
 
     private var statusText: String {
-        switch dose.log?.status {
+        switch dose.effectiveStatus {
         case .taken: return "TAKEN"
         case .skipped: return "SKIPPED"
         case .missed: return "MISSED"
         case .wasted: return "WASTED"
-        case nil: return dose.scheduledAt < Date() ? "OVERDUE" : "UPCOMING"
+        case nil: return dose.isOverdue ? "OVERDUE" : "UPCOMING"
         }
     }
 }

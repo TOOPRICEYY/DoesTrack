@@ -36,10 +36,12 @@ struct RootView: View {
                     .font(.system(size: 24, weight: .bold))
                     .foregroundStyle(Color.appBlue)
                     .frame(width: 62, height: 62)
-                    .background(Color.blue.opacity(0.28), in: Circle())
+                    .background(Color.blue.opacity(0.16), in: Circle())
+                    .background(.regularMaterial, in: Circle())
                     .overlay {
                         Circle().stroke(.white.opacity(0.8), lineWidth: 1)
                     }
+                    .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
             }
             .padding(.trailing, 24)
             .padding(.bottom, 64)

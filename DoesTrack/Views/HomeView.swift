@@ -380,6 +380,7 @@ struct DateStripView: View {
                         } label: {
                             let doses = store.scheduledDoses(on: date)
                             let hasMissed = doses.contains { $0.effectiveStatus == .missed }
+                            let hasOverdue = doses.contains(where: \.isOverdue)
                             let isSelected = selectedDate.isSameDay(as: date)
 
                             VStack(spacing: 8) {
@@ -392,8 +393,8 @@ struct DateStripView: View {
                                     .frame(width: 44, height: 44)
                                     .background(isSelected ? Color.appBlue : Color.appSurface, in: Circle())
                                     .overlay {
-                                        if hasMissed && !isSelected {
-                                            Circle().stroke(.red.opacity(0.75), lineWidth: 2.5)
+                                        if !isSelected, hasMissed || hasOverdue {
+                                            Circle().stroke((hasMissed ? Color.red : .orange).opacity(0.75), lineWidth: 2.5)
                                         }
                                     }
                                 Circle()

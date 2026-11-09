@@ -36,7 +36,13 @@ struct ModelTrackerView: View {
                         .foregroundStyle(.orange)
                     }
 
-                    ProtocolScoreCard(score: store.protocolScore(), adherence: store.adherenceRate(days: 7), streak: store.currentStreak(), saturation: saturation)
+                    ProtocolScoreCard(
+                        score: store.protocolScore(),
+                        adherence: store.adherence(days: 7),
+                        consistency: store.adherence(days: 30),
+                        streak: store.streakText,
+                        saturation: saturation
+                    )
 
                     HStack {
                         Text("Medications (\(store.medications.count))")
@@ -86,37 +92,47 @@ struct ModelTrackerView: View {
 }
 
 struct ProtocolScoreCard: View {
-    var score: Int
-    var adherence: Double
-    var streak: Int
+    var score: Int?
+    var adherence: Double?
+    var consistency: Double?
+    var streak: String
     var saturation: Double
+
+    private func percent(_ value: Double?) -> String {
+        value.map { $0.formatted(.percent.precision(.fractionLength(0))) } ?? "–"
+    }
 
     var body: some View {
         ModelCard {
             VStack(alignment: .leading, spacing: 18) {
                 Text("Protocol Score")
                     .font(.title.bold())
-                Text("Based on adherence, active protocols, streaks, and inventory health.")
+                Text(score == nil
+                     ? "Log your first scheduled dose to start your score."
+                     : "Based on adherence, active protocols, and inventory health.")
                     .foregroundStyle(.secondary)
 
                 ZStack {
                     Circle()
                         .stroke(Color.appBlue.opacity(0.18), lineWidth: 20)
                     Circle()
-                        .trim(from: 0, to: CGFloat(max(0.03, Double(score) / 100)))
+                        .trim(from: 0, to: CGFloat(score.map { max(0.03, Double($0) / 100) } ?? 0))
                         .stroke(Color.appBlue, style: StrokeStyle(lineWidth: 20, lineCap: .round))
                         .rotationEffect(.degrees(-90))
-                    Text("\(score)")
+                    Text(score.map(String.init) ?? "–")
                         .font(.system(size: 58, weight: .bold))
+                        .foregroundStyle(score == nil ? .secondary : .primary)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(score.map { "Protocol score \($0) out of 100" } ?? "Protocol score not started")
                 .frame(width: 190, height: 190)
                 .frame(maxWidth: .infinity)
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 22) {
-                    ScoreMetric(title: "Adherence", value: adherence.formatted(.percent.precision(.fractionLength(0))), tint: .appBlue)
-                    ScoreMetric(title: "Saturation", value: saturation.formatted(.percent.precision(.fractionLength(0))), tint: .green)
-                    ScoreMetric(title: "Streak", value: "\(streak / 7) week\(streak / 7 == 1 ? "" : "s")", tint: .orange)
-                    ScoreMetric(title: "Consistency", value: adherence.formatted(.percent.precision(.fractionLength(0))), tint: .purple)
+                    ScoreMetric(title: "Adherence", value: percent(adherence), detail: "Last 7 days", tint: .appBlue)
+                    ScoreMetric(title: "Saturation", value: saturation.formatted(.percent.precision(.fractionLength(0))), detail: "Protocols active", tint: .green)
+                    ScoreMetric(title: "Streak", value: streak, detail: "Dose days in a row", tint: .orange)
+                    ScoreMetric(title: "Consistency", value: percent(consistency), detail: "Last 30 days", tint: .purple)
                 }
             }
         }
@@ -126,10 +142,11 @@ struct ProtocolScoreCard: View {
 struct ScoreMetric: View {
     var title: String
     var value: String
+    var detail: String? = nil
     var tint: Color = .appBlue
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             Label {
                 Text(title).foregroundStyle(.primary)
             } icon: {
@@ -137,9 +154,18 @@ struct ScoreMetric: View {
             }
                 .font(.headline)
                 .labelStyle(.titleAndIcon)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
             Text(value)
                 .font(.title3.bold())
+            if let detail {
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -158,12 +184,12 @@ struct TrackerMedicationRow: View {
                 Text(medication.name)
                     .font(.headline)
                     .lineLimit(1)
-                Text("\(medication.displayDose) · \(loggedCount) doses")
+                Text("\(medication.displayDose) · \(loggedCount) dose\(loggedCount == 1 ? "" : "s")")
                     .foregroundStyle(.secondary)
             }
             Spacer()
             VStack(alignment: .trailing) {
-                Text(medication.isActive ? "New" : "Paused")
+                Text(medication.isActive ? "Active" : "Paused")
                     .foregroundStyle(.secondary)
                 Text("Since \(medication.createdAt.formatted(date: .numeric, time: .omitted))")
                     .foregroundStyle(.secondary)
@@ -195,7 +221,7 @@ struct ExpensesView: View {
 
                 Section("Monthly Usage Estimate") {
                     ForEach(store.medications.filter(\.isActive)) { medication in
-                        LabeledContent(medication.name, value: "\(monthlyDoseCount(for: medication)) doses")
+                        LabeledContent(medication.name, value: "\(monthlyDoseCount(for: medication)) dose\(monthlyDoseCount(for: medication) == 1 ? "" : "s")")
                     }
                     LabeledContent("Total scheduled doses", value: "\(store.medications.filter(\.isActive).reduce(0) { $0 + monthlyDoseCount(for: $1) })")
                 }
