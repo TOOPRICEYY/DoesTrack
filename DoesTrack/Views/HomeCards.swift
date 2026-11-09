@@ -273,21 +273,9 @@ extension HomeCardID {
         switch self {
         case .nextDose:
             guard let dose = store.nextScheduledDose() else { return "No scheduled dose" }
-            let day = dose.scheduledAt
-            let calendar = Calendar.current
-            let dayText: String
-            if dose.isOverdue {
-                dayText = "Overdue"
-            } else if calendar.isDateInToday(day) {
-                dayText = "Today"
-            } else if calendar.isDateInTomorrow(day) {
-                dayText = "Tomorrow"
-            } else {
-                dayText = day.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
-            }
-            return "\(dose.medication.name) · \(dayText)"
+            return dose.medication.name
         case .streak:
-            if store.currentStreak() > 0 { return "dose days fully logged" }
+            if store.currentStreak() > 0 { return "Every dose logged" }
             return store.logs.contains { $0.status == .taken } ? "Builds from scheduled doses" : "Log a dose to start"
         case .weeklyCompliance:
             guard store.adherence(days: 7) != nil else {
@@ -364,6 +352,96 @@ extension HomeCardID {
     }
 }
 
+// MARK: - Status line and week strip
+
+/// One day in the seven-day strip shown on the streak and compliance cards.
+enum HomeCardDayMark: Equatable {
+    case taken
+    case partial
+    case missed
+    case open
+    case none
+
+    var accessibilityText: String {
+        switch self {
+        case .taken: return "all taken"
+        case .partial: return "partly taken"
+        case .missed: return "missed"
+        case .open: return "due today"
+        case .none: return "nothing due"
+        }
+    }
+}
+
+struct HomeCardStatus: Equatable {
+    var text: String
+    var systemImage: String
+    var tint: Color
+}
+
+@MainActor
+extension HomeCardID {
+    /// A short coloured line under the subtitle, for cards with a state worth calling out.
+    func status(in store: DoseStore) -> HomeCardStatus? {
+        switch self {
+        case .nextDose:
+            guard let dose = store.nextScheduledDose() else { return nil }
+            let day = dose.scheduledAt
+            let calendar = Calendar.current
+            if dose.isOverdue {
+                return HomeCardStatus(text: "Overdue", systemImage: "exclamationmark.circle.fill", tint: .red)
+            }
+            if calendar.isDateInToday(day) {
+                return HomeCardStatus(text: "Today", systemImage: "clock.fill", tint: .orange)
+            }
+            if calendar.isDateInTomorrow(day) {
+                return HomeCardStatus(text: "Tomorrow", systemImage: "calendar", tint: .appBlue)
+            }
+            return HomeCardStatus(
+                text: day.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()),
+                systemImage: "calendar",
+                tint: .appBlue
+            )
+        case .hydration:
+            guard store.hydrationGoalOunces > 0,
+                  store.hydrationOunces(on: Date()) >= store.hydrationGoalOunces
+            else { return nil }
+            return HomeCardStatus(text: "Goal reached", systemImage: "checkmark.circle.fill", tint: .green)
+        default:
+            return nil
+        }
+    }
+
+    /// The last seven days, oldest first, for the cards that summarise adherence.
+    func weekMarks(in store: DoseStore) -> [HomeCardDayMark]? {
+        guard self == .streak || self == .weeklyCompliance else { return nil }
+        let today = Date().startOfDay
+        return (0..<7).reversed().map { offset in
+            let doses = store.scheduledDoses(on: today.addingDays(-offset))
+            guard !doses.isEmpty else { return .none }
+            let taken = doses.filter { $0.effectiveStatus == .taken }.count
+            if taken == doses.count { return .taken }
+            if offset == 0, doses.contains(where: \.isOpen) { return .open }
+            return taken > 0 ? .partial : .missed
+        }
+    }
+
+    /// 0...1 fill for cards that track progress toward a daily goal.
+    func progress(in store: DoseStore) -> Double? {
+        switch self {
+        case .hydration:
+            guard store.hydrationGoalOunces > 0 else { return nil }
+            return min(1, store.hydrationOunces(on: Date()) / store.hydrationGoalOunces)
+        case .todayDoses:
+            let doses = store.scheduledDoses(on: Date())
+            guard !doses.isEmpty else { return nil }
+            return Double(doses.filter { $0.log?.status == .taken }.count) / Double(doses.count)
+        default:
+            return nil
+        }
+    }
+}
+
 // MARK: - Home grid
 
 struct HomeCardsGrid: View {
@@ -382,6 +460,8 @@ struct HomeCardsGrid: View {
                         Color.clear.frame(maxWidth: .infinity)
                     }
                 }
+                // Cards in a row share the height of the tallest one.
+                .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -422,7 +502,10 @@ struct HomeCardsGrid: View {
             value: config.card.value(in: store),
             subtitle: config.card.subtitle(in: store),
             systemImage: config.card.systemImage,
-            accent: config.colorHex.map { Color(hex: $0) }
+            accent: config.colorHex.map { Color(hex: $0) },
+            status: config.card.status(in: store),
+            weekMarks: config.card.weekMarks(in: store),
+            progress: config.card.progress(in: store)
         )
 
         if case .none = action {
@@ -445,36 +528,101 @@ struct HomeMetricCard: View {
     var subtitle: String
     var systemImage: String?
     var accent: Color?
+    var status: HomeCardStatus? = nil
+    var weekMarks: [HomeCardDayMark]? = nil
+    var progress: Double? = nil
+
+    /// Cards report "-" when there is nothing to show yet.
+    private var isEmptyValue: Bool { value == "-" }
 
     var body: some View {
         ModelCard {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
                     Text(title)
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.secondary)
-                        .tracking(3)
-                    Spacer()
+                        .tracking(2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Spacer(minLength: 6)
                     if let systemImage {
                         Image(systemName: systemImage)
+                            .font(.subheadline)
                             .foregroundStyle(accent.map { AnyShapeStyle($0) } ?? AnyShapeStyle(.secondary))
                     }
                 }
-                Text(value)
-                    .font(.system(size: 38, weight: .bold))
-                    .foregroundStyle(accent ?? .primary)
+
+                Text(isEmptyValue ? "–" : value)
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .foregroundStyle(isEmptyValue ? AnyShapeStyle(.tertiary) : AnyShapeStyle(accent ?? .primary))
                     .lineLimit(1)
                     .minimumScaleFactor(0.45)
-                Text(subtitle)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
-                HStack {
-                    ForEach(0..<7, id: \.self) { _ in
-                        Capsule().fill((accent ?? .gray).opacity(0.35)).frame(height: 8)
+                    .contentTransition(.numericText())
+                    .animation(.snappy, value: value)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+
+                    if let status {
+                        Label(status.text, systemImage: status.systemImage)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(status.tint)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
                 }
+
+                Spacer(minLength: 0)
+
+                if let weekMarks {
+                    WeekStrip(marks: weekMarks, accent: accent ?? .appBlue)
+                } else if let progress {
+                    ProgressView(value: progress)
+                        .tint(progress >= 1 ? .green : (accent ?? .appBlue))
+                        .animation(.snappy, value: progress)
+                        .accessibilityHidden(true)
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+    }
+}
+
+/// Seven capsules, oldest day first, coloured by how that day's doses went.
+private struct WeekStrip: View {
+    var marks: [HomeCardDayMark]
+    var accent: Color
+
+    var body: some View {
+        HStack(spacing: 5) {
+            ForEach(marks.indices, id: \.self) { index in
+                capsule(for: marks[index])
+                    .frame(height: 8)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Last 7 days")
+        .accessibilityValue(marks.map(\.accessibilityText).joined(separator: ", "))
+    }
+
+    @ViewBuilder
+    private func capsule(for mark: HomeCardDayMark) -> some View {
+        switch mark {
+        case .taken:
+            Capsule().fill(Color.green)
+        case .partial:
+            Capsule().fill(Color.orange)
+        case .missed:
+            Capsule().fill(Color.red.opacity(0.75))
+        case .open:
+            Capsule().strokeBorder(accent, lineWidth: 1.5)
+        case .none:
+            Capsule().fill(Color.primary.opacity(0.10))
         }
     }
 }

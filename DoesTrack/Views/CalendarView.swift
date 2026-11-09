@@ -16,14 +16,39 @@ struct CalendarShotsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.title.bold())
+                    HStack(spacing: 10) {
+                        Text("Calendar")
+                            .font(.largeTitle.bold())
+                        Spacer()
+                        if !isShowingToday {
+                            Button {
+                                withAnimation(.snappy) {
+                                    visibleMonth = Date()
+                                    selectedDate = Date()
+                                }
+                            } label: {
+                                Text("Today")
+                                    .font(.subheadline.weight(.semibold))
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 9)
+                                    .background(Color.appBlue.opacity(0.14), in: Capsule())
+                            }
+                            .accessibilityLabel("Jump to today")
+                        }
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.headline.weight(.bold))
+                                .frame(width: 40, height: 40)
+                                .background(Color.appSurface, in: Circle())
+                                .overlay {
+                                    Circle().stroke(.primary.opacity(0.08))
+                                }
+                        }
+                        .foregroundStyle(.primary)
+                        .accessibilityLabel("Close calendar")
                     }
-                    .foregroundStyle(.primary)
-                    .accessibilityLabel("Close calendar")
 
                     monthHeader
                     monthGrid
@@ -54,55 +79,80 @@ struct CalendarShotsView: View {
         }
     }
 
+    private var isShowingToday: Bool {
+        selectedDate.isSameDay(as: Date())
+            && calendar.isDate(visibleMonth, equalTo: Date(), toGranularity: .month)
+    }
+
     private var monthHeader: some View {
         HStack {
-            Button {
-                visibleMonth = calendar.date(byAdding: .month, value: -1, to: visibleMonth) ?? visibleMonth
-            } label: {
-                Image(systemName: "chevron.left")
-            }
-            Spacer()
             Text(visibleMonth.formatted(.dateTime.month(.wide).year()))
-                .font(.largeTitle.bold())
+                .font(.title2.bold())
+                .contentTransition(.numericText())
             Spacer()
-            Button {
-                visibleMonth = calendar.date(byAdding: .month, value: 1, to: visibleMonth) ?? visibleMonth
-            } label: {
-                Image(systemName: "chevron.right")
+            HStack(spacing: 10) {
+                monthStepButton(systemImage: "chevron.left", label: "Previous month", step: -1)
+                monthStepButton(systemImage: "chevron.right", label: "Next month", step: 1)
             }
         }
-        .font(.title2.bold())
+    }
+
+    private func monthStepButton(systemImage: String, label: String, step: Int) -> some View {
+        Button {
+            withAnimation(.snappy) {
+                visibleMonth = calendar.date(byAdding: .month, value: step, to: visibleMonth) ?? visibleMonth
+            }
+        } label: {
+            Image(systemName: systemImage)
+                .font(.headline.weight(.semibold))
+                .frame(width: 40, height: 40)
+                .background(Color.appSurface, in: Circle())
+                .overlay {
+                    Circle().stroke(.primary.opacity(0.08))
+                }
+        }
         .foregroundStyle(.primary)
+        .accessibilityLabel(label)
     }
 
     private var monthGrid: some View {
         let days = monthDays()
         let marked = store.scheduledDoseDates(inMonthContaining: visibleMonth)
 
-        return LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 20) {
+        return LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 12) {
             ForEach(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], id: \.self) { day in
-                Text(day)
-                    .font(.subheadline)
+                Text(day.uppercased())
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
 
             ForEach(days.indices, id: \.self) { index in
                 if let date = days[index] {
                     let day = calendar.component(.day, from: date)
+                    let isSelected = selectedDate.isSameDay(as: date)
+                    let isToday = date.isSameDay(as: Date())
                     Button {
                         selectedDate = date
                     } label: {
-                        VStack(spacing: 5) {
+                        VStack(spacing: 4) {
                             Text("\(day)")
-                                .font(.title3.weight(selectedDate.isSameDay(as: date) ? .bold : .regular))
-                                .foregroundStyle(selectedDate.isSameDay(as: date) ? .white : .primary)
-                                .frame(width: 48, height: 48)
-                                .background(selectedDate.isSameDay(as: date) ? Color.appBlue : .clear, in: RoundedRectangle(cornerRadius: 10))
+                                .font(.body.weight(isSelected || isToday ? .bold : .regular))
+                                .foregroundStyle(isSelected ? Color.white : (isToday ? Color.appBlue : Color.primary))
+                                .frame(width: 42, height: 42)
+                                .background(isSelected ? Color.appBlue : Color.clear, in: Circle())
+                                .overlay {
+                                    if isToday && !isSelected {
+                                        Circle().stroke(Color.appBlue.opacity(0.55), lineWidth: 1.5)
+                                    }
+                                }
                             Circle()
                                 .fill(marked.contains(day) ? Color.appBlue : .clear)
-                                .frame(width: 7, height: 7)
+                                .frame(width: 6, height: 6)
                         }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(date.formatted(date: .complete, time: .omitted) + (marked.contains(day) ? ", doses scheduled" : ""))
+                    .accessibilityAddTraits(isSelected ? .isSelected : [])
                 } else {
                     Color.clear.frame(height: 60)
                 }
@@ -133,6 +183,7 @@ struct CalendarShotsView: View {
 
                 if doses.isEmpty && unscheduledLogs.isEmpty {
                     Text("No doses on this day")
+                        .foregroundStyle(.secondary)
                 } else {
                     VStack(spacing: 10) {
                         ForEach(doses) { dose in

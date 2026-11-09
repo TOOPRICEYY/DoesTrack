@@ -46,7 +46,7 @@ private struct ChatBubble: View {
             }
             .padding(12)
             .background(
-                message.role == .user ? Color.appBlue.opacity(0.14) : .white,
+                message.role == .user ? Color.appBlue.opacity(0.14) : Color.appSurface,
                 in: RoundedRectangle(cornerRadius: 14, style: .continuous)
             )
             .overlay {
@@ -149,27 +149,44 @@ struct FortnightlyReviewView: View {
         reviewCard("Adherence", systemImage: "chart.line.uptrend.xyaxis") {
             HStack(alignment: .lastTextBaseline, spacing: 12) {
                 Text(scheduledCount == 0 ? "–" : currentAdherence.formatted(.percent.precision(.fractionLength(0))))
-                    .font(.system(size: 42, weight: .bold))
+                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                    .foregroundStyle(scheduledCount == 0 ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
                 Text(adherenceDeltaText)
                     .font(.subheadline)
                     .foregroundStyle(adherenceDeltaColor)
             }
 
-            Chart(rows) { row in
-                BarMark(
-                    x: .value("Day", row.date, unit: .day),
-                    y: .value("Rate", row.rate)
-                )
-                .foregroundStyle(Color.appBlue)
+            if scheduledCount == 0 {
+                Label("Your daily adherence chart appears here once a scheduled dose has been due.", systemImage: "chart.bar")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                Chart(rows) { row in
+                    BarMark(
+                        x: .value("Day", row.date, unit: .day),
+                        y: .value("Rate", row.rate)
+                    )
+                    .foregroundStyle(Color.appBlue)
+                }
+                .chartYScale(domain: 0...1)
+                .chartYAxis {
+                    AxisMarks(values: [0, 0.5, 1]) { value in
+                        AxisGridLine()
+                        AxisValueLabel {
+                            if let rate = value.as(Double.self) {
+                                Text(rate.formatted(.percent.precision(.fractionLength(0))))
+                            }
+                        }
+                    }
+                }
+                .frame(height: 120)
             }
-            .chartYScale(domain: 0...1)
-            .frame(height: 120)
         }
     }
 
     private var dosesCard: some View {
         reviewCard("Doses", systemImage: "pills.fill") {
-            LabeledContent("Taken", value: "\(takenCount) of \(scheduledCount) scheduled")
+            LabeledContent("Taken", value: scheduledCount == 0 ? "None due yet" : "\(takenCount) of \(scheduledCount) scheduled")
             LabeledContent("Streak", value: store.streakText)
             if !store.inventoryWarnings().isEmpty {
                 LabeledContent("Refill needed") {

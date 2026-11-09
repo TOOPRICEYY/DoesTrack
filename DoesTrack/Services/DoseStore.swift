@@ -137,6 +137,9 @@ final class DoseStore: ObservableObject {
             UserDefaults.standard.removeObject(forKey: Self.markedAllReadKey)
             UserDefaults.standard.removeObject(forKey: Self.hydrationGoalKey)
             UserDefaults.standard.removeObject(forKey: Self.notificationPreferencesKey)
+            UserDefaults.standard.removeObject(forKey: ProfileStorage.nameKey)
+            UserDefaults.standard.removeObject(forKey: ProfileStorage.appearanceKey)
+            UserDefaults.standard.removeObject(forKey: ProfileStorage.unlockedAchievementsKey)
         }
 
         notificationPreferences = Self.loadNotificationPreferences()

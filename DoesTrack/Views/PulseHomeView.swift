@@ -53,7 +53,7 @@ struct PulseView: View {
                     Button {
                         showsFortnightlyReview = true
                     } label: {
-                        PulseHighlight(title: "Fortnightly Insights", subtitle: "Your 14-day health story across adherence, vitals, body composition, labs, and recommendations. Open your latest review.", systemImage: "waveform.path.ecg")
+                        PulseHighlight(title: "Fortnightly Insights", subtitle: "Your last 14 days: adherence, body, labs and next steps.", systemImage: "waveform.path.ecg")
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Open your latest review")
@@ -135,20 +135,29 @@ struct PulseView: View {
                         ChatThreadView(messages: store.chatMessages)
                     }
 
-                    HStack {
+                    HStack(spacing: 8) {
                         TextField("Ask DoesTrack...", text: $prompt)
-                            .textFieldStyle(.roundedBorder)
+                            .textFieldStyle(.plain)
+                            .submitLabel(.send)
                             .focused($promptFocused)
                             .onSubmit(sendPrompt)
+                            .padding(.leading, 16)
+                            .padding(.vertical, 12)
                         Button {
                             sendPrompt()
                         } label: {
                             Image(systemName: "arrow.up.circle.fill")
-                                .font(.title2)
+                                .font(.system(size: 30))
                         }
                         .accessibilityLabel("Ask DoesTrack")
                         .disabled(prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .padding(.trailing, 8)
                     }
+                    .background(Color.appSurface, in: Capsule())
+                    .overlay {
+                        Capsule().stroke(promptFocused ? Color.appBlue.opacity(0.6) : Color.primary.opacity(0.12), lineWidth: promptFocused ? 1.5 : 1)
+                    }
+                    .animation(.snappy, value: promptFocused)
                     .padding(.top, 6)
 
                     Label("Chat stored on device only. Not medical advice.", systemImage: "lock")
@@ -224,9 +233,10 @@ struct PulseHighlight: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
-                Spacer()
+                Spacer(minLength: 8)
                 Image(systemName: "chevron.right")
-                    .foregroundStyle(.secondary)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.tertiary)
             }
         }
     }
@@ -241,12 +251,17 @@ struct MiniInsight: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Image(systemName: systemImage)
+                .font(.title3)
                 .foregroundStyle(tint)
             Text(title)
-                .font(.caption.bold())
+                .font(.footnote.bold())
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
             Text(subtitle)
-                .font(.caption2)
+                .font(.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -267,21 +282,25 @@ struct QuestionRow: View {
     }
 
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
             Image(systemName: "lightbulb.fill")
                 .foregroundStyle(.orange)
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.headline)
                 Text(subtitle)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-            Spacer()
+            Spacer(minLength: 8)
             Image(systemName: "chevron.right")
-                .foregroundStyle(.secondary)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.tertiary)
         }
         .padding()
         .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12).stroke(.primary.opacity(0.08))
+        }
     }
 }

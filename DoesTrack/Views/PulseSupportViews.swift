@@ -79,7 +79,7 @@ struct PulseAssistantReply: Identifiable {
             return PulseAssistantReply(
                 prompt: trimmed,
                 title: "Schedule Summary",
-                body: nextDose.map { "Next scheduled dose is \($0.medication.name) at \($0.scheduledAt.formatted(date: .abbreviated, time: .shortened))." } ?? "No upcoming scheduled dose is currently active.",
+                body: nextDose.map { $0.isOverdue ? "\($0.medication.name) was due at \($0.scheduledAt.formatted(date: .omitted, time: .shortened)) today and has not been logged yet." : "Next scheduled dose is \($0.medication.name) at \($0.scheduledAt.formatted(date: .abbreviated, time: .shortened))." } ?? "No upcoming scheduled dose is currently active.",
                 bullets: activeStacks.prefix(3).map { "\($0.name): \($0.medicationCount) medication\($0.medicationCount == 1 ? "" : "s")" }
             )
         }
@@ -99,7 +99,7 @@ struct PulseAssistantReply: Identifiable {
             title: "Protocol Snapshot",
             body: "You have \(activeStacks.count) active stack\(activeStacks.count == 1 ? "" : "s") with \(adherence) 14-day adherence.",
             bullets: [
-                nextDose.map { "Next dose: \($0.medication.name), \($0.scheduledAt.formatted(date: .abbreviated, time: .shortened))" } ?? "No upcoming dose scheduled.",
+                nextDose.map { "\($0.isOverdue ? "Overdue" : "Next dose"): \($0.medication.name), \($0.scheduledAt.formatted(date: .abbreviated, time: .shortened))" } ?? "No upcoming dose scheduled.",
                 "Current streak: \(store.currentStreak()) day\(store.currentStreak() == 1 ? "" : "s").",
                 store.protocolScore().map { "Protocol score: \($0)." } ?? "Protocol score starts after your first logged dose."
             ]
@@ -381,11 +381,14 @@ struct ProtocolQuestionDetailView: View {
             if let next = store.nextScheduledDose() {
                 PulseCard {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Next Scheduled Dose")
+                        Text(next.isOverdue ? "Overdue Dose" : "Next Scheduled Dose")
                             .font(.headline)
+                            .foregroundStyle(next.isOverdue ? .red : .primary)
                         Text(next.medication.name)
                             .font(.title3.bold())
-                        Text(next.scheduledAt.formatted(date: .abbreviated, time: .shortened))
+                        Text(next.isOverdue
+                             ? "Was due \(next.scheduledAt.formatted(date: .abbreviated, time: .shortened))"
+                             : next.scheduledAt.formatted(date: .abbreviated, time: .shortened))
                             .foregroundStyle(.secondary)
                     }
                 }

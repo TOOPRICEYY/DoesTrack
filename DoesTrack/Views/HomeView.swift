@@ -3,6 +3,7 @@ import SwiftUI
 struct ModelHomeView: View {
     @EnvironmentObject private var store: DoseStore
     @AppStorage(HomeCardLayoutStore.storageKey) private var homeCardLayoutRaw = ""
+    @AppStorage(ProfileStorage.nameKey) private var profileName = ""
     @State private var selectedDate = Date()
     @State private var showsProtocolEditor = false
     @State private var showsCalendar = false
@@ -57,6 +58,7 @@ struct ModelHomeView: View {
             }
             .background(Color.appBackground.ignoresSafeArea())
             .navigationBarHidden(true)
+            .sensoryFeedback(.impact(weight: .light), trigger: store.hydrationOunces(on: Date()))
             .sheet(isPresented: $showsProtocolEditor) {
                 ProtocolEditorView()
                     .environmentObject(store)
@@ -141,10 +143,33 @@ struct ModelHomeView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center) {
-            Text(greeting)
-                .font(.largeTitle.bold())
-                .frame(maxWidth: .infinity, alignment: .leading)
+        HStack(alignment: .center, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(Date().formatted(.dateTime.weekday(.wide).month(.abbreviated).day()).uppercased())
+                    .font(.caption.weight(.bold))
+                    .tracking(1.5)
+                    .foregroundStyle(.secondary)
+                Text(greeting)
+                    .font(.largeTitle.bold())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if !selectedDate.isSameDay(as: Date()) {
+                Button {
+                    withAnimation(.snappy) { selectedDate = Date() }
+                } label: {
+                    Text("Today")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(Color.appBlue.opacity(0.14), in: Capsule())
+                }
+                .foregroundStyle(Color.appBlue)
+                .accessibilityLabel("Jump to today")
+                .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            }
 
             Button {
                 showsCalendar = true
@@ -175,7 +200,8 @@ struct ModelHomeView: View {
             }
             .accessibilityLabel("Open notifications")
         }
-        .padding(.top, 26)
+        .padding(.top, 20)
+        .animation(.snappy, value: selectedDate.isSameDay(as: Date()))
     }
 
     private var emptyStart: some View {
@@ -321,11 +347,18 @@ struct ModelHomeView: View {
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
+        let base: String
         switch hour {
-        case 5..<12: return "Good Morning"
-        case 12..<18: return "Good Afternoon"
-        default: return "Good Evening"
+        case 5..<12: base = "Good Morning"
+        case 12..<18: base = "Good Afternoon"
+        default: base = "Good Evening"
         }
+        let firstName = profileName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(separator: " ")
+            .first
+            .map(String.init) ?? ""
+        return firstName.isEmpty ? base : "\(base), \(firstName)"
     }
 }
 
@@ -382,14 +415,15 @@ struct DateStripView: View {
                             let hasMissed = doses.contains { $0.effectiveStatus == .missed }
                             let hasOverdue = doses.contains(where: \.isOverdue)
                             let isSelected = selectedDate.isSameDay(as: date)
+                            let isToday = offset == 0
 
                             VStack(spacing: 8) {
                                 Text(date.formatted(.dateTime.weekday(.abbreviated)).uppercased())
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .font(.caption.weight(isToday ? .bold : .regular))
+                                    .foregroundStyle(isToday ? AnyShapeStyle(Color.appBlue) : AnyShapeStyle(.secondary))
                                 Text(date.formatted(.dateTime.day()))
                                     .font(.title3.weight(.semibold))
-                                    .foregroundStyle(isSelected ? .white : .primary)
+                                    .foregroundStyle(isSelected ? .white : (isToday ? Color.appBlue : .primary))
                                     .frame(width: 44, height: 44)
                                     .background(isSelected ? Color.appBlue : Color.appSurface, in: Circle())
                                     .overlay {

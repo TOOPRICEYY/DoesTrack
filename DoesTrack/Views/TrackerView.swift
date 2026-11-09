@@ -10,30 +10,26 @@ struct ModelTrackerView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    HStack(alignment: .lastTextBaseline) {
-                        VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(alignment: .center) {
                             Text("Tracker")
                                 .font(.largeTitle.bold())
-                            Text("Monitor your treatment adherence and trends.")
-                                .font(.title3)
-                                .foregroundStyle(.secondary)
-                        }
 
-                        Spacer()
+                            Spacer()
 
-                        Button {
-                            showsExpenses = true
-                        } label: {
-                            Label("Expenses", systemImage: "wallet.pass")
-                                .font(.headline)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 9)
-                                .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 12).stroke(.orange.opacity(0.45))
-                                }
+                            Button {
+                                showsExpenses = true
+                            } label: {
+                                Label("Expenses", systemImage: "wallet.pass")
+                                    .font(.subheadline.weight(.semibold))
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 9)
+                                    .background(.orange.opacity(0.14), in: Capsule())
+                            }
+                            .foregroundStyle(.orange)
                         }
-                        .foregroundStyle(.orange)
+                        Text("Your adherence, score and trends")
+                            .foregroundStyle(.secondary)
                     }
 
                     ProtocolScoreCard(
@@ -46,7 +42,7 @@ struct ModelTrackerView: View {
 
                     HStack {
                         Text("Medications (\(store.medications.count))")
-                            .font(.title.bold())
+                            .font(.title2.bold())
                         Spacer()
                         Button("Show more") {
                             showsStacks = true
@@ -106,10 +102,11 @@ struct ProtocolScoreCard: View {
         ModelCard {
             VStack(alignment: .leading, spacing: 18) {
                 Text("Protocol Score")
-                    .font(.title.bold())
+                    .font(.title2.bold())
                 Text(score == nil
                      ? "Log your first scheduled dose to start your score."
                      : "Based on adherence, active protocols, and inventory health.")
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
 
                 ZStack {
@@ -119,8 +116,11 @@ struct ProtocolScoreCard: View {
                         .trim(from: 0, to: CGFloat(score.map { max(0.03, Double($0) / 100) } ?? 0))
                         .stroke(Color.appBlue, style: StrokeStyle(lineWidth: 20, lineCap: .round))
                         .rotationEffect(.degrees(-90))
+                        .animation(.smooth(duration: 0.6), value: score)
                     Text(score.map(String.init) ?? "–")
-                        .font(.system(size: 58, weight: .bold))
+                        .font(.system(size: 58, weight: .bold, design: .rounded))
+                        .contentTransition(.numericText())
+                        .animation(.snappy, value: score)
                         .foregroundStyle(score == nil ? .secondary : .primary)
                 }
                 .accessibilityElement(children: .ignore)
@@ -202,6 +202,10 @@ struct TrackerMedicationRow: View {
             Rectangle()
                 .fill(Color(hex: medication.colorHex))
                 .frame(width: 5)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16).stroke(.primary.opacity(0.08))
         }
     }
 }

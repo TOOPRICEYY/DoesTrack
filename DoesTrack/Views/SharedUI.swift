@@ -28,26 +28,29 @@ struct StackSuggestionRow: View {
                 Image(systemName: "square.stack.3d.up.fill")
                     .font(.title2)
                     .foregroundStyle(Color.appBlue)
-                    .frame(width: 56, height: 56)
-                    .background(Color.appBlue.opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
-                VStack(alignment: .leading, spacing: 5) {
+                    .frame(width: 52, height: 52)
+                    .background(Color.appBlue.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+                VStack(alignment: .leading, spacing: 4) {
+                    if !tag.isEmpty {
+                        Text(tag)
+                            .font(.caption2.weight(.bold))
+                            .tracking(1.5)
+                            .foregroundStyle(.orange)
+                    }
                     Text(title)
                         .font(.headline)
                         .foregroundStyle(.primary)
+                        .lineLimit(2)
                     Text(subtitle)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
                 }
-                Spacer()
-                if !tag.isEmpty {
-                    Text(tag)
-                        .font(.caption.bold())
-                        .foregroundStyle(.orange)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(.orange.opacity(0.12), in: Capsule())
-                }
+                Spacer(minLength: 8)
                 Image(systemName: "chevron.right")
-                    .foregroundStyle(.secondary)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.tertiary)
             }
             .padding()
             .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 18))

@@ -1253,14 +1253,17 @@ private struct ScheduledDoseActionRow: View {
             Button {
                 onLogDose(dose)
             } label: {
-                Image(systemName: dose.log?.status == .taken ? "checkmark" : "plus")
+                let isTaken = dose.log?.status == .taken
+                Image(systemName: isTaken ? "checkmark" : "plus")
                     .font(.title2.weight(.semibold))
-                    .foregroundStyle(doseLoggingBlue)
+                    .contentTransition(.symbolEffect(.replace))
+                    .foregroundStyle(isTaken ? Color.white : doseLoggingBlue)
                     .frame(width: 54, height: 54)
-                    .background(doseLoggingBlue.opacity(0.12), in: Circle())
+                    .background(isTaken ? Color.green : doseLoggingBlue.opacity(0.12), in: Circle())
                     .overlay {
-                        Circle().stroke(doseLoggingBlue.opacity(0.42), lineWidth: 1.5)
+                        Circle().stroke(isTaken ? Color.green : doseLoggingBlue.opacity(0.42), lineWidth: 1.5)
                     }
+                    .animation(.snappy, value: isTaken)
             }
             .accessibilityLabel("Log \(dose.medication.name)")
         }

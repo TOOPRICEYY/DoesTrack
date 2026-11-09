@@ -18,8 +18,8 @@ struct NotificationsCenterView: View {
                         dismiss()
                     } label: {
                         Image(systemName: "chevron.left")
-                            .font(.title2.bold())
-                            .frame(width: 52, height: 52)
+                            .font(.headline.weight(.bold))
+                            .frame(width: 44, height: 44)
                             .background(Color.appSurface, in: Circle())
                     }
                     .foregroundStyle(.primary)
@@ -27,11 +27,13 @@ struct NotificationsCenterView: View {
 
                     VStack(alignment: .leading) {
                         Text("Notifications")
-                            .font(.largeTitle.bold())
+                            .font(.title.bold())
                             .lineLimit(1)
                             .minimumScaleFactor(0.6)
-                        Text(attentionCount == 0 ? "You're all caught up" : "\(attentionCount) new item\(attentionCount == 1 ? "" : "s") need attention")
+                        Text(attentionCount == 0 ? "You're all caught up" : "\(attentionCount) need\(attentionCount == 1 ? "s" : "") attention")
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
 
                     Spacer()
