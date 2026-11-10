@@ -736,12 +736,30 @@ struct DraftMedication: Identifiable {
         case Self.dailyFrequency, Self.twiceDailyFrequency, Self.everyNDaysFrequency:
             return Set(Weekday.allCases)
         case Self.weeklyFrequency:
-            return [.monday]
+            return [startWeekday]
         case Self.customWeekdaysFrequency:
-            return customDays.isEmpty ? [.monday] : customDays
+            return customDays.isEmpty ? [startWeekday] : customDays
         default:
-            return [.monday, .thursday]
+            return [startWeekday, Self.weekday(startWeekday, plus: 3)]
         }
+    }
+
+    /// Weekly schedules are anchored to the start date, so the first dose
+    /// lands on the day the protocol starts rather than the next Monday.
+    private var startWeekday: Weekday {
+        Weekday(rawValue: Calendar.doseTrackCalendar.component(.weekday, from: startDate)) ?? .monday
+    }
+
+    private static func weekday(_ day: Weekday, plus offset: Int) -> Weekday {
+        Weekday(rawValue: (day.rawValue - 1 + offset) % 7 + 1) ?? day
+    }
+
+    /// Two days spaced three or four apart, e.g. Mon/Thu or Tue/Fri.
+    private static func isEvenlySpacedPair(_ days: Set<Weekday>) -> Bool {
+        guard days.count == 2 else { return false }
+        let values = days.map(\.rawValue).sorted()
+        let gap = values[1] - values[0]
+        return gap == 3 || gap == 4
     }
 
     private var estimatedDosesPerWeek: Double {
@@ -775,7 +793,7 @@ struct DraftMedication: Identifiable {
             return Self.dailyFrequency
         }
 
-        if first.daysOfWeek == [.monday, .thursday] {
+        if isEvenlySpacedPair(first.daysOfWeek) {
             return Self.twiceWeeklyFrequency
         }
 

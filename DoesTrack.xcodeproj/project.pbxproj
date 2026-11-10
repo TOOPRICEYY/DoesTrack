@@ -35,6 +35,7 @@
 		9C6328AFB3E8A64DB3DA8269 /* TrackerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AA7EAF18D46B2B43D3CE69C /* TrackerView.swift */; };
 		9F855490ED5CDE1D7EA06089 /* MedicationDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58CA01B5E49514D63FB1EE30 /* MedicationDetailView.swift */; };
 		AC092A6C8536038197223778 /* SharedUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0335AE67168208396E409198 /* SharedUI.swift */; };
+		AC092A6C8536038197223779 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0335AE67168208396E409199 /* OnboardingView.swift */; };
 		B225CBE5E7DFBF37DB8742CC /* ProtocolEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 424224BB03962B1EB70361E8 /* ProtocolEditorView.swift */; };
 		B528E8B62F60003F119D094A /* DoseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5E6147D7C5F385628D82A86 /* DoseModels.swift */; };
 		B62A88FD931B897019E5EFD3 /* WellnessModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BD4139226271BF7BC80E6F1 /* WellnessModels.swift */; };
@@ -62,6 +63,7 @@
 /* Begin PBXFileReference section */
 		00B201DF8E4288953E9AEDAF /* ICloudSyncClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICloudSyncClient.swift; sourceTree = "<group>"; };
 		0335AE67168208396E409198 /* SharedUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedUI.swift; sourceTree = "<group>"; };
+		0335AE67168208396E409199 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		09DDB6ADBEC3670037E4A16A /* DoesTrack.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = DoesTrack.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		117BFB435073C3453DF69B78 /* StacksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StacksView.swift; sourceTree = "<group>"; };
 		18AB602512B6E65DB564D040 /* Date+DoesTrack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+DoesTrack.swift"; sourceTree = "<group>"; };
@@ -137,6 +139,7 @@
 				F046AF1B279362DA5A16E70A /* PulseSupportViews.swift */,
 				8261868164F505BC52FE212B /* RootView.swift */,
 				D4FDDE3B16D148360EF69386 /* SettingsSupportViews.swift */,
+				0335AE67168208396E409199 /* OnboardingView.swift */,
 				0335AE67168208396E409198 /* SharedUI.swift */,
 				117BFB435073C3453DF69B78 /* StacksView.swift */,
 				369B5501D6194542E7442991 /* SyncView.swift */,
@@ -346,6 +349,7 @@
 				7BC572627650C6621CAD5E25 /* PulseSupportViews.swift in Sources */,
 				B7ED30052CDA99FC0332D3BD /* RootView.swift in Sources */,
 				362003E57F6961A8620A5A85 /* SettingsSupportViews.swift in Sources */,
+				AC092A6C8536038197223779 /* OnboardingView.swift in Sources */,
 				AC092A6C8536038197223778 /* SharedUI.swift in Sources */,
 				108492539B86B2CC54924304 /* StacksView.swift in Sources */,
 				0A8A82FFB90248B0845A0BCC /* SyncView.swift in Sources */,

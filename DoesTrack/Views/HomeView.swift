@@ -205,42 +205,62 @@ struct ModelHomeView: View {
     }
 
     private var emptyStart: some View {
-        VStack(spacing: 18) {
-            Image(systemName: "syringe.fill")
-                .font(.system(size: 34, weight: .bold))
-                .foregroundStyle(Color.appBlue)
-                .frame(width: 84, height: 84)
-                .background(Color.appBlue.opacity(0.16), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        VStack(spacing: 22) {
+            VStack(spacing: 14) {
+                Image(systemName: "syringe.fill")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(Color.appBlue)
+                    .frame(width: 68, height: 68)
+                    .background(Color.appBlue.opacity(0.16), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .accessibilityHidden(true)
 
-            Text("Your journey starts here")
-                .font(.title.bold())
-                .multilineTextAlignment(.center)
+                Text("Your journey starts here")
+                    .font(.title2.bold())
+                    .multilineTextAlignment(.center)
 
-            Text("Add your first protocol to start tracking")
-                .font(.title3)
-                .foregroundStyle(.secondary)
+                Text("Add your first protocol and today's doses will show up here.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
 
-            Button {
-                showsProtocolEditor = true
-            } label: {
-                Label("Add Protocol", systemImage: "plus")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
+                Button {
+                    showsProtocolEditor = true
+                } label: {
+                    Label("Add Protocol", systemImage: "plus")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.appBlue)
+                .controlSize(.large)
+                .padding(.top, 4)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Color.appBlue)
-            .controlSize(.large)
-            .padding(.horizontal, 54)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 12)
 
-            DividerWithText(text: "or")
+            setupChecklist
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 44)
+    }
+
+    private var setupChecklist: some View {
+        SetupChecklistCard(
+            onAddProtocol: { showsProtocolEditor = true },
+            onLogDose: {
+                if let dose = store.scheduledDoses(on: Date()).first(where: \.isOpen) {
+                    loggingDose = dose
+                } else {
+                    selectedDate = Date()
+                    showsUnscheduledLog = true
+                }
+            }
+        )
     }
 
     private var configuredHome: some View {
         VStack(alignment: .leading, spacing: 20) {
+            setupChecklist
+
             if !scheduledDosesForSelectedDate.isEmpty || !unscheduledLogsForSelectedDate.isEmpty {
                 HomeScheduledDoseSection(
                     date: selectedDate,
@@ -329,12 +349,12 @@ struct ModelHomeView: View {
 
     private var suggestedSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Suggested for you", systemImage: "hourglass")
+            Label(stacks.isEmpty ? "Or start from a template" : "Suggested for you", systemImage: stacks.isEmpty ? "square.stack.3d.up" : "sparkles")
                 .font(.title3.bold())
                 .foregroundStyle(.primary)
                 .symbolRenderingMode(.hierarchical)
 
-            Text("Based on your health & wellness goal")
+            Text(stacks.isEmpty ? "Popular stacks you can adjust before saving." : "Popular stacks you can add alongside your protocol.")
                 .foregroundStyle(.secondary)
 
             ForEach(ProtocolTemplate.suggested.prefix(2)) { template in

@@ -4,7 +4,11 @@ struct RootView: View {
     @EnvironmentObject private var store: DoseStore
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage(ProfileStorage.appearanceKey) private var appearanceRaw = AppAppearance.system.rawValue
+    @AppStorage(OnboardingStorage.completedKey) private var onboardingCompleted = false
     @State private var showsStacks = false
+    @State private var showsOnboarding = false
+    @State private var showsFirstProtocolEditor = false
+    @State private var opensEditorAfterOnboarding = false
 
     private var takenDoseCount: Int {
         store.logs.filter { $0.status == .taken }.count
@@ -55,12 +59,29 @@ struct RootView: View {
         .sheet(isPresented: $showsStacks) {
             ProtocolStacksView()
         }
+        .sheet(isPresented: $showsFirstProtocolEditor) {
+            ProtocolEditorView()
+                .environmentObject(store)
+        }
+        .fullScreenCover(isPresented: $showsOnboarding, onDismiss: {
+            if opensEditorAfterOnboarding {
+                opensEditorAfterOnboarding = false
+                showsFirstProtocolEditor = true
+            }
+        }) {
+            OnboardingView { outcome in
+                onboardingCompleted = true
+                opensEditorAfterOnboarding = outcome == .addProtocol
+                showsOnboarding = false
+            }
+        }
         // A logged dose gets a success tap wherever it was logged from.
         .sensoryFeedback(trigger: takenDoseCount) { old, new in
             new > old ? .success : nil
         }
         .onAppear {
             AppAppearance.apply(rawValue: appearanceRaw)
+            presentOnboardingIfNeeded()
         }
         .onChange(of: appearanceRaw) { _, newValue in
             AppAppearance.apply(rawValue: newValue)
@@ -89,6 +110,18 @@ struct RootView: View {
             default:
                 break
             }
+        }
+    }
+
+    /// The welcome flow is for a genuinely new install. Anyone who already
+    /// has data (an existing user updating, or a restored backup) skips it.
+    private func presentOnboardingIfNeeded() {
+        guard !onboardingCompleted else { return }
+        let isFreshInstall = store.medications.isEmpty && store.logs.isEmpty
+        if isFreshInstall && !OnboardingStorage.isSuppressedForTesting {
+            showsOnboarding = true
+        } else if !isFreshInstall {
+            onboardingCompleted = true
         }
     }
 }

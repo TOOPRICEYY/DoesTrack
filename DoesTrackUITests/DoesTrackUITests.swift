@@ -115,6 +115,47 @@ final class DoesTrackUITests: XCTestCase {
         app.buttons["Close optimization stacks"].waitAndTap(); sleep(1); shot("f15-home-after-resume")
     }
 
+    func testOnboardingFlow() throws {
+        relaunchShowingOnboarding()
+        XCTAssertTrue(app.staticTexts["Welcome to DoesTrack"].waitForExistence(timeout: 8))
+        shot("o01-welcome")
+        app.buttons["Continue"].waitAndTap()
+
+        let nameField = app.textFields["Your name"]
+        XCTAssertTrue(nameField.waitForExistence(timeout: 4))
+        nameField.tap()
+        nameField.typeText("Sam\n")
+        shot("o02-name")
+        app.buttons["Look Around First"].waitAndTap()
+
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Sam'")).firstMatch.waitForExistence(timeout: 6))
+        XCTAssertTrue(app.buttons["Add your first protocol"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.buttons["Turn on reminders"].exists)
+        sleep(1)
+        shot("o03-home-checklist")
+
+        // The welcome flow is shown once.
+        app.terminate()
+        app.launchArguments = ["-show-onboarding"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Add Protocol"].waitForExistence(timeout: 8))
+        XCTAssertFalse(app.staticTexts["Welcome to DoesTrack"].exists)
+
+        // Choosing to set up a protocol lands in the editor.
+        relaunchShowingOnboarding()
+        app.buttons["Continue"].waitAndTap()
+        app.buttons["Set Up My First Protocol"].waitAndTap()
+        XCTAssertTrue(app.buttons["Next"].waitForExistence(timeout: 6))
+        sleep(1)
+        shot("o04-editor-after-welcome")
+    }
+
+    private func relaunchShowingOnboarding() {
+        app.terminate()
+        app.launchArguments = ["-reset-for-ui-testing", "-show-onboarding"]
+        app.launch()
+    }
+
     private func shot(_ name: String) { attachScreenshot(named: name) }
 
     private func attachScreenshot(named name: String) {
@@ -171,7 +212,7 @@ final class DoesTrackUITests: XCTestCase {
         app.staticTexts[nextVisibleTRTDayLabel()].firstMatch.waitAndTap()
         XCTAssertTrue(app.staticTexts["TRT+"].waitForExistence(timeout: 4))
 
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Log '")).firstMatch.waitAndTap()
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Log ' AND label != 'Log your first dose' AND label != 'Log unscheduled dose'")).firstMatch.waitAndTap()
         XCTAssertTrue(app.staticTexts["Log New Dose"].waitForExistence(timeout: 4))
         XCTAssertTrue(app.staticTexts["Injection Site"].waitForExistence(timeout: 3))
 
@@ -192,16 +233,9 @@ final class DoesTrackUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Taken"].waitForExistence(timeout: 4))
     }
 
+    /// Weekly schedules start on the protocol's start date, which is today.
     private func nextVisibleTRTDayLabel() -> String {
-        let calendar = Calendar.current
-        for offset in 0...3 {
-            guard let date = calendar.date(byAdding: .day, value: offset, to: Date()) else { continue }
-            let weekday = calendar.component(.weekday, from: date)
-            if weekday == 2 || weekday == 5 {
-                return "\(calendar.component(.day, from: date))"
-            }
-        }
-        return "\(calendar.component(.day, from: Date()))"
+        "\(Calendar.current.component(.day, from: Date()))"
     }
 
     private func verifyHomeAndCustomization() {
