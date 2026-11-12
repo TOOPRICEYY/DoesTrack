@@ -45,7 +45,7 @@ struct ModelHomeView: View {
                         }
                     }
 
-                    if stacks.isEmpty {
+                    if store.medications.isEmpty {
                         emptyStart
                     } else {
                         configuredHome
@@ -273,6 +273,8 @@ struct ModelHomeView: View {
             } else {
                 stackSummarySection
             }
+
+            PausedMedicationsSection()
 
             Button {
                 showsUnscheduledLog = true

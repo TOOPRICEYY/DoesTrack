@@ -36,22 +36,19 @@ struct HomeScheduledDoseSection: View {
                             .font(.title.bold())
                         ProgressChip(taken: takenCount(group.doses), total: group.doses.count)
                         Spacer()
-                        Button {
-                            if let medication = group.doses.first?.medication {
-                                onMedicationActions(medication)
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis")
-                                .font(.title3.bold())
-                                .foregroundStyle(.secondary)
-                                .frame(width: 44, height: 36)
-                        }
-                        .accessibilityLabel("Medication actions")
+                        protocolMenu(for: group.stackName)
                     }
 
                     VStack(spacing: 0) {
                         ForEach(group.doses) { dose in
                             ScheduledDoseActionRow(dose: dose, onLogDose: onLogDose)
+                                .contextMenu {
+                                    Button {
+                                        onMedicationActions(dose.medication)
+                                    } label: {
+                                        Label("Pause \(dose.medication.name)", systemImage: "pause.circle")
+                                    }
+                                }
                             if dose.id != group.doses.last?.id {
                                 Divider().padding(.leading, 40)
                             }
@@ -121,6 +118,138 @@ struct HomeScheduledDoseSection: View {
 
     private func takenCount(_ doses: [ScheduledDose]) -> Int {
         doses.filter { $0.log?.status == .taken }.count
+    }
+
+    /// Pause any one substance in the protocol, or the whole protocol.
+    private func protocolMenu(for stackName: String) -> some View {
+        let active = store.medications.filter { $0.stackName == stackName && $0.isActive }
+        return Menu {
+            Section(active.count > 1 ? "Pause one substance" : "") {
+                ForEach(active) { medication in
+                    Button {
+                        onMedicationActions(medication)
+                    } label: {
+                        Label("Pause \(medication.name)", systemImage: "pause.circle")
+                    }
+                }
+            }
+            if active.count > 1 {
+                Section {
+                    Button {
+                        store.setStack(named: stackName, isActive: false)
+                    } label: {
+                        Label("Pause all of \(stackName)", systemImage: "pause.fill")
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.title3.bold())
+                .foregroundStyle(.secondary)
+                .frame(width: 44, height: 36)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel("\(stackName) actions")
+    }
+}
+
+/// Every paused substance, with when it comes back and a one-tap resume.
+/// Shown on Home so a paused substance never just disappears.
+struct PausedMedicationsSection: View {
+    @EnvironmentObject private var store: DoseStore
+    var onPause: (Medication) -> Void = { _ in }
+
+    private var paused: [Medication] {
+        store.medications
+            .filter { !$0.isActive }
+            .sorted {
+                if $0.stackName == $1.stackName {
+                    return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+                }
+                return $0.stackName.localizedCaseInsensitiveCompare($1.stackName) == .orderedAscending
+            }
+    }
+
+    var body: some View {
+        if !paused.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Paused")
+                    .font(.title2.bold())
+
+                VStack(spacing: 0) {
+                    ForEach(paused) { medication in
+                        PausedMedicationRow(medication: medication) {
+                            withAnimation(.snappy) {
+                                store.setMedicationActive(medication, isActive: true)
+                            }
+                        }
+                        if medication.id != paused.last?.id {
+                            Divider().padding(.leading, 56)
+                        }
+                    }
+                }
+                .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(.primary.opacity(0.10))
+                }
+            }
+        }
+    }
+}
+
+struct PausedMedicationRow: View {
+    var medication: Medication
+    var showsProtocol = true
+    var onResume: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "pause.circle.fill")
+                .font(.title2)
+                .foregroundStyle(.orange)
+                .frame(width: 32)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(medication.name)
+                    .font(.headline)
+                    .lineLimit(1)
+                Text(timingText)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                if showsProtocol {
+                    Text(medication.stackName)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            Button(action: onResume) {
+                Label("Resume", systemImage: "play.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.appBlue.opacity(0.12), in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.appBlue)
+            .accessibilityLabel("Resume \(medication.name)")
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 12)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var timingText: String {
+        medication.pausedUntil.map {
+            "Paused, resumes \($0.formatted(.dateTime.month(.abbreviated).day()))"
+        } ?? "Paused until you resume"
     }
 }
 
@@ -217,9 +346,10 @@ struct PauseMedicationSheet: View {
                     .font(.largeTitle.bold())
                     .lineLimit(2)
                     .minimumScaleFactor(0.72)
-                Text("Temporarily hide from home screen and stop reminders")
+                Text(pauseExplanation)
                     .font(.title3)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Button {
                     store.pauseMedication(medication, until: nil)
@@ -287,9 +417,23 @@ struct PauseMedicationSheet: View {
             }
             .padding(.horizontal)
         }
-        .presentationDetents([.height(500), .large])
+        .presentationDetents([.height(540), .large])
         .presentationDragIndicator(.hidden)
         .background(Color(.systemBackground))
+    }
+
+    private var pauseExplanation: String {
+        let others = store.medications.filter {
+            $0.stackName == medication.stackName && $0.id != medication.id && $0.isActive
+        }
+        let siblings = store.medications.filter { $0.stackName == medication.stackName && $0.id != medication.id }
+        if others.isEmpty && !siblings.isEmpty {
+            return "This is the last active substance in \(medication.stackName), so the whole protocol pauses. Your history is kept."
+        }
+        if others.isEmpty {
+            return "Stops its doses and reminders. Your history is kept, and you can resume any time."
+        }
+        return "Stops this substance's doses and reminders. The rest of \(medication.stackName) keeps its schedule."
     }
 }
 
@@ -1335,8 +1479,9 @@ private struct PauseOptionContent: View {
                 Text(subtitle)
                     .font(.headline)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer()
+            Spacer(minLength: 0)
         }
         .padding()
         .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 18, style: .continuous))

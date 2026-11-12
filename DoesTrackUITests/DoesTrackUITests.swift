@@ -150,6 +150,61 @@ final class DoesTrackUITests: XCTestCase {
         shot("o04-editor-after-welcome")
     }
 
+    func testPauseOneSubstance() throws {
+        // A two-substance template: Thymosin Alpha-1 + BPC-157.
+        app.staticTexts["Immune Modulation Stack"].firstMatch.waitAndTap()
+        for _ in 0..<5 where !app.buttons["Save"].exists {
+            app.buttons["Next"].waitAndTap()
+        }
+        app.buttons["Save"].waitAndTap()
+
+        app.buttons["Open optimization stacks"].waitAndTap()
+        app.buttons["Expand Immune Modulation Stack"].waitAndTap()
+        app.buttons["Pause BPC-157"].waitAndTap()
+        app.buttons["Pause Until I Resume"].waitAndTap()
+
+        XCTAssertTrue(app.staticTexts["1 of 2 paused"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["Partly active"].exists)
+        XCTAssertTrue(app.buttons["Pause Thymosin Alpha-1"].exists)
+        XCTAssertTrue(app.buttons["Resume BPC-157"].exists)
+        sleep(1)
+        shot("p01-stacks-partly-paused")
+        app.buttons["Close optimization stacks"].waitAndTap()
+
+        // Home keeps the paused substance visible with a resume button.
+        let resume = app.buttons["Resume BPC-157"]
+        if !resume.waitForExistence(timeout: 4) { app.swipeUp() }
+        XCTAssertTrue(resume.waitForExistence(timeout: 4))
+        sleep(1)
+        shot("p02-home-paused")
+
+        // Find a day with a dose due so the protocol menu is on screen.
+        app.swipeDown()
+        let calendar = Calendar.current
+        for offset in 0...6 where !app.buttons["Immune Modulation Stack actions"].exists {
+            guard let day = calendar.date(byAdding: .day, value: offset, to: Date()) else { continue }
+            app.staticTexts["\(calendar.component(.day, from: day))"].firstMatch.tap()
+            _ = app.buttons["Immune Modulation Stack actions"].waitForExistence(timeout: 1.5)
+        }
+        XCTAssertTrue(app.buttons["Immune Modulation Stack actions"].exists)
+        if app.buttons["Immune Modulation Stack actions"].exists {
+            app.buttons["Immune Modulation Stack actions"].tap()
+            XCTAssertTrue(app.buttons["Pause Thymosin Alpha-1"].waitForExistence(timeout: 3))
+            XCTAssertFalse(app.buttons["Pause BPC-157"].exists)
+            shot("p03-home-menu")
+            app.buttons["Pause Thymosin Alpha-1"].tap()
+            sleep(1)
+            shot("p04-pause-sheet")
+            XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'whole protocol pauses'")).firstMatch.waitForExistence(timeout: 3))
+            app.swipeDown(velocity: .fast)
+            sleep(1)
+        }
+
+        if !resume.waitForExistence(timeout: 2) { app.swipeUp() }
+        resume.waitAndTap()
+        XCTAssertTrue(app.buttons["Resume BPC-157"].waitForNonExistence(timeout: 4))
+    }
+
     private func relaunchShowingOnboarding() {
         app.terminate()
         app.launchArguments = ["-reset-for-ui-testing", "-show-onboarding"]

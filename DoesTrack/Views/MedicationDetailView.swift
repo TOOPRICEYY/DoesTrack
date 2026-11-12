@@ -52,6 +52,12 @@ struct MedicationDetailView: View {
     @State private var mode: GraphMode = .doses
     @State private var bucket: Bucket = .daily
     @State private var editingLog: DoseLog?
+    @State private var showsPause = false
+
+    /// The live record, so the pause state updates while the sheet is open.
+    private var current: Medication {
+        store.medications.first { $0.id == medication.id } ?? medication
+    }
 
     private var supportsPK: Bool {
         PKParameterLibrary.parameterSet(for: medication) != nil
@@ -115,7 +121,40 @@ struct MedicationDetailView: View {
                 Text("\(takenLogs.count) dose\(takenLogs.count == 1 ? "" : "s") logged since \(firstLogDateText)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                Divider().padding(.vertical, 6)
+
+                if current.isActive {
+                    Button {
+                        showsPause = true
+                    } label: {
+                        Label("Pause \(current.name)", systemImage: "pause.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.orange)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    HStack {
+                        Label(current.pausedUntil.map { "Paused, resumes \($0.formatted(.dateTime.month(.abbreviated).day()))" } ?? "Paused until you resume", systemImage: "pause.circle.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.orange)
+                        Spacer()
+                        Button {
+                            withAnimation(.snappy) {
+                                store.setMedicationActive(current, isActive: true)
+                            }
+                        } label: {
+                            Label("Resume", systemImage: "play.fill")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .accessibilityLabel("Resume \(current.name)")
+                    }
+                }
             }
+        }
+        .sheet(isPresented: $showsPause) {
+            PauseMedicationSheet(medication: current)
+                .environmentObject(store)
         }
     }
 

@@ -132,7 +132,13 @@ struct ProtocolStackCard: View {
     var onPause: () -> Void
     var onResume: () -> Void
     var onDelete: () -> Void
+    @EnvironmentObject private var store: DoseStore
     @State private var confirmsDelete = false
+    @State private var pausingMedication: Medication?
+
+    private var pausedCount: Int {
+        stack.medications.filter { !$0.isActive }.count
+    }
 
     var body: some View {
         ModelCard {
@@ -144,7 +150,7 @@ struct ProtocolStackCard: View {
                     Text(stack.name)
                         .font(.title.bold())
                     Spacer()
-                    Text(stack.isActive ? "Active" : "Inactive")
+                    Text(statusText)
                         .font(.headline)
                         .foregroundStyle(stack.isActive ? .green : .secondary)
                         .padding(.horizontal, 12)
@@ -158,6 +164,12 @@ struct ProtocolStackCard: View {
                 }
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+
+                if stack.isActive && pausedCount > 0 {
+                    Label("\(pausedCount) of \(stack.medicationCount) paused", systemImage: "pause.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.orange)
+                }
 
                 Divider()
 
@@ -191,6 +203,10 @@ struct ProtocolStackCard: View {
                     .accessibilityLabel(isExpanded ? "Collapse \(stack.name)" : "Expand \(stack.name)")
                 }
                 .font(.title2)
+                .sheet(item: $pausingMedication) { medication in
+                    PauseMedicationSheet(medication: medication)
+                        .environmentObject(store)
+                }
                 .confirmationDialog("Delete \(stack.name)?", isPresented: $confirmsDelete, titleVisibility: .visible) {
                     Button("Delete Protocol", role: .destructive, action: onDelete)
                     Button("Cancel", role: .cancel) {}
@@ -211,15 +227,47 @@ struct ProtocolStackCard: View {
                                         .foregroundStyle(.secondary.opacity(0.7))
                                 }
                                 Spacer()
-                                Text("\(medication.displayDose) \(frequencyLabel(for: medication))")
-                                    .foregroundStyle(.secondary)
+                                VStack(alignment: .trailing, spacing: 8) {
+                                    Text("\(medication.displayDose) \(frequencyLabel(for: medication))")
+                                        .foregroundStyle(.secondary)
+                                    if stack.medicationCount > 1 || stack.isActive {
+                                        medicationPauseButton(medication)
+                                    }
+                                }
                             }
+                            .opacity(medication.isActive ? 1 : 0.7)
                         }
                     }
                     .padding(.top, 8)
                 }
             }
         }
+    }
+
+    private var statusText: String {
+        guard stack.isActive else { return "Inactive" }
+        return pausedCount > 0 ? "Partly active" : "Active"
+    }
+
+    private func medicationPauseButton(_ medication: Medication) -> some View {
+        Button {
+            if medication.isActive {
+                pausingMedication = medication
+            } else {
+                withAnimation(.snappy) {
+                    store.setMedicationActive(medication, isActive: true)
+                }
+            }
+        } label: {
+            Label(medication.isActive ? "Pause" : "Resume", systemImage: medication.isActive ? "pause.fill" : "play.fill")
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background((medication.isActive ? Color.orange : Color.appBlue).opacity(0.14), in: Capsule())
+                .foregroundStyle(medication.isActive ? Color.orange : Color.appBlue)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(medication.isActive ? "Pause \(medication.name)" : "Resume \(medication.name)")
     }
 
     private var shareText: String {
